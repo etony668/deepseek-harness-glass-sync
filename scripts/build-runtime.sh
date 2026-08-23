@@ -51,6 +51,12 @@ run_pnpm() {
   CI=true "$BUILD/node/node" "$BUILD/pnpm/node_modules/pnpm/bin/pnpm.mjs" "$@"
 }
 
+# The official build invokes `pnpm` again from nested package scripts. Make
+# the fixed bundled wrapper discoverable to those child processes before the
+# first upstream command runs.
+"$ROOT/glass/runtime/make-pnpm-wrapper.sh"
+export PATH="$BUILD/bin:$PATH"
+
 if [ ! -f "$HARNESS/pnpm-lock.yaml" ]; then
   echo "missing upstream lockfile: $HARNESS/pnpm-lock.yaml" >&2
   exit 1
@@ -85,8 +91,6 @@ test -f "$BUILD/backend/lib/bin.js" || {
 
 echo "== materialize official workspace peer closure =="
 "$BUILD/node/node" "$ROOT/scripts/materialize-runtime.mjs"
-
-"$ROOT/glass/runtime/make-pnpm-wrapper.sh"
 
 echo "== smoke test official dsh web profile =="
 TMP_HOME="$(mktemp -d)"
