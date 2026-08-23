@@ -2,15 +2,19 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的原生 macOS 外壳——
-**你熟悉的 dsh，装进真正的液态玻璃，并能持续同步官方 Harness。**
+> **系统支持：** Apple 芯片（arm64）的 macOS 26 或更高版本，以及 Windows 10
+> 2004（19041）或更高版本（x64/ARM64）。Windows 11 额外提供原生
+> Mica/Acrylic 毛玻璃材质。
+
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的原生
+macOS 与 Windows 外壳——**你熟悉的 dsh，装进真正的系统材质窗口，并能持续同步官方
+Harness。**
 
 DeepSeek Harness Glass Sync 将**未经修改的官方 DeepSeek Harness 运行时**及其 Web
-界面封装进自包含的 macOS 应用。外壳不是 Electron / Tauri，而是一个精简的 SwiftUI 程序：整个窗口
-直接落在苹果公开的
+界面封装进自包含的桌面应用。macOS 外壳是精简的 SwiftUI 程序，直接使用苹果公开的
 [`glassEffect`](https://developer.apple.com/documentation/swiftui/glasseffect(_:in:))
-材质上，边缘折射、透镜感和分层材质由系统渲染，与 macOS 26 原生应用一致，
-而非 CSS 模拟。
+材质；Windows 外壳采用 WinUI 3 + WebView2，在 Windows 11 使用 Mica 与 Acrylic
+原生材质。两者都不是 Electron / Tauri 包装。
 
 本项目不会重写 Harness 的插件架构。App 直接启动官方 `web` profile，完整保留
 Cordis Profile Bundle、`dsh plugin` 安装、用户 `cordis.patch.yml` 层、官方 Web

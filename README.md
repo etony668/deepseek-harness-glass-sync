@@ -2,17 +2,20 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-A native macOS shell for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) —
-**the dsh you know, in a real Liquid Glass window that stays current with
+> **Platform support:** macOS 26+ on Apple Silicon and Windows 10 version
+> 2004+ on x64/ARM64. Windows 11 adds native Mica/Acrylic materials.
+
+Native macOS and Windows shells for
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) —
+**the dsh you know, in a real system-material window that stays current with
 official Harness.**
 
 DeepSeek Harness Glass Sync embeds the **unmodified official DeepSeek Harness
-runtime** and its Web UI in a self-contained macOS app. Instead of an Electron
-or Tauri wrapper, the shell is a small SwiftUI program that puts the entire
-window on Apple's public
+runtime** and its Web UI in self-contained desktop apps. The macOS shell is a
+small SwiftUI program built on Apple's public
 [`glassEffect`](https://developer.apple.com/documentation/swiftui/glasseffect(_:in:))
-material. The result is the same edge refraction, lensing, and layered
-materials Apple's own macOS 26 apps use — not a CSS approximation.
+material; the Windows shell is WinUI 3 + WebView2 with Windows 11 Mica and
+Acrylic surfaces. Neither is an Electron or Tauri wrapper.
 
 The app does not replace Harness's plugin architecture. It launches the
 official `web` profile, preserving Cordis profile bundles, `dsh plugin`
