@@ -126,6 +126,19 @@ body:not([data-ds-dark-theme]) {
   --dsw-alias-markdown-code-segment-unselected: rgb(241, 243, 245) !important;
   --dsw-alias-state-warn-label: rgb(180, 120, 0) !important;
 }
+
+/* Glass 壳只替换官方 fallback 标题，不触碰 sidebar 的结构与布局。
+   标题所在 .brandName 是 24px 高；版本徽标自身为 16px 高。明确徽标的
+   行高/自身对齐，避免继承标题的 24px line-height 后视觉上偏离中心。 */
+[data-dsh-glass-brand="name"] + span {
+  display: inline-flex !important;
+  align-items: center !important;
+  align-self: center !important;
+  box-sizing: border-box !important;
+  height: 16px !important;
+  line-height: 16px !important;
+  vertical-align: middle !important;
+}
 """
 
 // MARK: - 官方运行时同步状态（原生同步面板与菜单共用）
@@ -977,12 +990,30 @@ final class GlassWebViewController: NSViewController, WKNavigationDelegate, WKDo
                   dshEqualizeCredentialOnboardingActions()
                 })
               }
+
+              // 官方 fallback 品牌名称与 commit 徽标位于同一个 .brandName 中。
+              // 仅用精确文本识别该 fallback span，给它加稳定标记后由 Glass CSS
+              // 修正相邻徽标的行高和垂直对齐；不依赖可能随上游改动的 CSS Module
+              // 类名，也不改写官方的 Sidebar 结构或插件自定义品牌 slot。
+              function dshApplySidebarBrand() {
+                var spans = document.querySelectorAll('span')
+                for (var i = 0; i < spans.length; i++) {
+                  var span = spans[i]
+                  if (span.children.length !== 0) continue
+                  if (span.textContent.trim() !== 'DSH Local Build') continue
+                  span.textContent = 'DeepSeek Harness'
+                  span.setAttribute('data-dsh-glass-brand', 'name')
+                }
+              }
+
               dshScheduleCredentialActionEqualization()
+              dshApplySidebarBrand()
               if (document.fonts && document.fonts.ready) {
                 document.fonts.ready.then(dshScheduleCredentialActionEqualization)
               }
               var dshMo = new MutationObserver(function () {
                 dshScheduleCredentialActionEqualization()
+                dshApplySidebarBrand()
               })
               dshMo.observe(document.body, { childList: true, subtree: true })
 
