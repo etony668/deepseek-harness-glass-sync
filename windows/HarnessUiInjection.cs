@@ -28,7 +28,7 @@ internal static class HarnessUiInjection
                   white-space: nowrap !important;
                   line-height: 16px !important;
                   vertical-align: middle !important;
-                  transform: translateY(-1px) !important;
+                  transform: translateY(1px) !important;
                 }
                 [data-dsh-glass-brand="name"] + span > [data-dsh-glass-revision-label="text"] {
                   display: block !important;
@@ -36,16 +36,20 @@ internal static class HarnessUiInjection
                   transform: translateY(1px) !important;
                 }
                 [data-dsh-glass-brand-name-row] {
-                  gap: 3px !important;
+                  gap: 2px !important;
                 }
                 [data-dsh-glass-brand-row] {
-                  gap: 3px !important;
+                  gap: 2px !important;
                 }
                 [data-dsh-glass-brand-identity] {
-                  gap: 5px !important;
+                  gap: 4px !important;
                 }
                 [data-dsh-glass-brand="name"] {
                   font-size: 16px !important;
+                  letter-spacing: -0.2px !important;
+                }
+                [data-dsh-glass-brand-button] {
+                  overflow: visible !important;
                 }
               `;
               (document.head || document.documentElement).appendChild(style);
@@ -76,6 +80,7 @@ internal static class HarnessUiInjection
                 }
                 var brandButton = span.closest('button');
                 if (brandButton && brandButton.parentElement) {
+                  brandButton.setAttribute('data-dsh-glass-brand-button', '');
                   brandButton.parentElement.setAttribute('data-dsh-glass-brand-row', '');
                 }
                 var revision = span.nextElementSibling;

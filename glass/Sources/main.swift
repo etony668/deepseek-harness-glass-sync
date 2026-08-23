@@ -129,7 +129,7 @@ body:not([data-ds-dark-theme]) {
 
 /* Glass 壳只替换官方 fallback 标题，不触碰 sidebar 的结构与布局。
    标题所在 .brandName 是 24px 高；版本徽标自身为 16px 高。明确徽标的
-   行高/自身对齐，并将卡片整体上移 1px，使其与标题字形视觉居中。 */
+   行高/自身对齐；卡片整体下移 1px，使其与标题字形视觉居中。 */
 [data-dsh-glass-brand="name"] + span {
   display: inline-flex !important;
   flex: none !important;
@@ -143,7 +143,7 @@ body:not([data-ds-dark-theme]) {
   white-space: nowrap !important;
   line-height: 16px !important;
   vertical-align: middle !important;
-  transform: translateY(-1px) !important;
+  transform: translateY(1px) !important;
 }
 [data-dsh-glass-brand="name"] + span > [data-dsh-glass-revision-label="text"] {
   display: block !important;
@@ -153,16 +153,20 @@ body:not([data-ds-dark-theme]) {
 /* 标题改为完整产品名后，仅收紧同一品牌行的两处官方间距；侧栏宽度仍只
    在默认值上增加 15px，避免 commit 卡片被右侧收起按钮裁切。 */
 [data-dsh-glass-brand-name-row] {
-  gap: 3px !important;
+  gap: 2px !important;
 }
 [data-dsh-glass-brand-row] {
-  gap: 3px !important;
+  gap: 2px !important;
 }
 [data-dsh-glass-brand-identity] {
-  gap: 5px !important;
+  gap: 4px !important;
 }
 [data-dsh-glass-brand="name"] {
   font-size: 16px !important;
+  letter-spacing: -0.2px !important;
+}
+[data-dsh-glass-brand-button] {
+  overflow: visible !important;
 }
 """
 
@@ -1040,6 +1044,7 @@ final class GlassWebViewController: NSViewController, WKNavigationDelegate, WKDo
                   }
                   var brandButton = span.closest('button')
                   if (brandButton && brandButton.parentElement) {
+                    brandButton.setAttribute('data-dsh-glass-brand-button', '')
                     brandButton.parentElement.setAttribute('data-dsh-glass-brand-row', '')
                   }
                   var revision = span.nextElementSibling
