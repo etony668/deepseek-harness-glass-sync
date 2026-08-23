@@ -63,6 +63,12 @@ if ($installedPnpmVersion -ne $pnpmVersion) {
     if ($LASTEXITCODE -ne 0) { throw "Could not install pnpm@$pnpmVersion" }
 }
 
+# The official Harness build recursively launches `pnpm` from package scripts.
+# Put the bundled command wrapper on PATH before that build begins; invoking
+# pnpm through an absolute Node path alone is insufficient on Windows.
+& (Join-Path $PSScriptRoot 'runtime\make-pnpm-wrapper.ps1') -OutputDirectory $bin
+$env:PATH = "$bin;$env:PATH"
+
 function Invoke-Pnpm {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
     & $node $pnpm @Arguments
@@ -101,8 +107,6 @@ if (-not (Test-Path -LiteralPath (Join-Path $backend 'lib\bin.js') -PathType Lea
 Write-Output '== materialize official workspace peer closure =='
 & $node (Join-Path $repositoryRoot 'scripts\materialize-runtime.mjs') $harness $backend
 if ($LASTEXITCODE -ne 0) { throw 'Runtime materialization failed.' }
-
-& (Join-Path $PSScriptRoot 'runtime\make-pnpm-wrapper.ps1') -OutputDirectory $bin
 
 Write-Output '== smoke test official dsh web profile =='
 $temporaryHome = Join-Path ([IO.Path]::GetTempPath()) ("dsh-smoke-" + [Guid]::NewGuid().ToString('N'))
