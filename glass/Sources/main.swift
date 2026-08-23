@@ -129,15 +129,40 @@ body:not([data-ds-dark-theme]) {
 
 /* Glass 壳只替换官方 fallback 标题，不触碰 sidebar 的结构与布局。
    标题所在 .brandName 是 24px 高；版本徽标自身为 16px 高。明确徽标的
-   行高/自身对齐，避免继承标题的 24px line-height 后视觉上偏离中心。 */
+   行高/自身对齐，并将卡片整体上移 1px，使其与标题字形视觉居中。 */
 [data-dsh-glass-brand="name"] + span {
   display: inline-flex !important;
+  flex: none !important;
+  flex-shrink: 0 !important;
   align-items: center !important;
+  justify-content: center !important;
   align-self: center !important;
   box-sizing: border-box !important;
   height: 16px !important;
+  min-width: max-content !important;
+  white-space: nowrap !important;
   line-height: 16px !important;
   vertical-align: middle !important;
+  transform: translateY(-1px) !important;
+}
+[data-dsh-glass-brand="name"] + span > [data-dsh-glass-revision-label="text"] {
+  display: block !important;
+  line-height: 1 !important;
+  transform: translateY(1px) !important;
+}
+/* 标题改为完整产品名后，仅收紧同一品牌行的两处官方间距；侧栏宽度仍只
+   在默认值上增加 15px，避免 commit 卡片被右侧收起按钮裁切。 */
+[data-dsh-glass-brand-name-row] {
+  gap: 3px !important;
+}
+[data-dsh-glass-brand-row] {
+  gap: 3px !important;
+}
+[data-dsh-glass-brand-identity] {
+  gap: 5px !important;
+}
+[data-dsh-glass-brand="name"] {
+  font-size: 16px !important;
 }
 """
 
@@ -999,23 +1024,105 @@ final class GlassWebViewController: NSViewController, WKNavigationDelegate, WKDo
                 var spans = document.querySelectorAll('span')
                 for (var i = 0; i < spans.length; i++) {
                   var span = spans[i]
-                  if (span.children.length !== 0) continue
-                  if (span.textContent.trim() !== 'DSH Local Build') continue
-                  span.textContent = 'DeepSeek Harness'
-                  span.setAttribute('data-dsh-glass-brand', 'name')
+                  if (span.children.length === 0 &&
+                      span.textContent.trim() === 'DSH Local Build') {
+                    span.textContent = 'DeepSeek Harness'
+                    span.setAttribute('data-dsh-glass-brand', 'name')
+                  }
+                  if (span.getAttribute('data-dsh-glass-brand') !== 'name') continue
+                  if (span.parentElement) {
+                    span.parentElement.setAttribute('data-dsh-glass-brand-name-row', '')
+                    if (span.parentElement.parentElement) {
+                      span.parentElement.parentElement.setAttribute(
+                        'data-dsh-glass-brand-identity', ''
+                      )
+                    }
+                  }
+                  var brandButton = span.closest('button')
+                  if (brandButton && brandButton.parentElement) {
+                    brandButton.parentElement.setAttribute('data-dsh-glass-brand-row', '')
+                  }
+                  var revision = span.nextElementSibling
+                  if (!revision || revision.tagName !== 'SPAN') continue
+                  if (revision.children.length !== 0) continue
+                  var commit = revision.textContent.trim()
+                  if (!/^[0-9a-f]{7,40}$/i.test(commit)) continue
+                  var label = document.createElement('span')
+                  label.setAttribute('data-dsh-glass-revision-label', 'text')
+                  // 完整 SHA 会在品牌区被裁切；徽标只展示通用的 7 位短
+                  // commit（仍足以识别构建版本），使文字有完整的居中空间。
+                  label.textContent = commit.slice(0, 7)
+                  revision.textContent = ''
+                  revision.appendChild(label)
                 }
+              }
+
+              // 上游的默认展开宽度是 280px。Glass 只在该默认值的基础上
+              // 增加 15px（295px），不会改动用户后续拖拽得到的宽度语义。
+              // React 重新写入 inline grid 样式时，MutationObserver 会再次
+              // 将这个视觉偏移应用到侧栏与对应的拖拽手柄。
+              function dshApplyDefaultSidebarWidth() {
+                // data-shell-overlay 是 AppFrame 的稳定公开 DOM 标记；它的
+                // 父元素正是带 inline gridTemplateColumns 的三栏容器。
+                var overlay = document.querySelector('[data-shell-overlay]')
+                var frame = overlay && overlay.parentElement
+                if (!frame) return
+                var grid = frame.style.getPropertyValue('grid-template-columns')
+                var tracks = grid.match(/-?\\d+(?:\\.\\d+)?px/g)
+                if (!tracks || tracks.length < 2) return
+
+                var sidebar = parseFloat(tracks[0])
+                var details = parseFloat(tracks[tracks.length - 1])
+                if (!frame.hasAttribute('data-dsh-glass-sidebar-offset')) {
+                  if (Math.round(sidebar) !== 280) return
+                  frame.setAttribute('data-dsh-glass-sidebar-offset', '15')
+                }
+                if (frame.style.getPropertyPriority('grid-template-columns') === 'important') return
+                // 收起态固定为官方 56px rail，不加宽。
+                if (sidebar <= 56) return
+
+                var widened = sidebar + 15
+                frame.style.setProperty(
+                  'grid-template-columns',
+                  widened + 'px minmax(0, 1fr) ' + details + 'px',
+                  'important'
+                )
+                var sidebarHandle = frame.querySelector('[data-side="sidebar"]')
+                if (!sidebarHandle) return
+                if (Math.round(parseFloat(sidebarHandle.style.left || '0')) !== Math.round(sidebar)) return
+                sidebarHandle.style.setProperty('left', widened + 'px', 'important')
+              }
+
+              var dshSidebarWidthPending = false
+              function dshScheduleDefaultSidebarWidth() {
+                if (dshSidebarWidthPending) return
+                dshSidebarWidthPending = true
+                requestAnimationFrame(function () {
+                  dshSidebarWidthPending = false
+                  dshApplyDefaultSidebarWidth()
+                })
               }
 
               dshScheduleCredentialActionEqualization()
               dshApplySidebarBrand()
+              dshScheduleDefaultSidebarWidth()
               if (document.fonts && document.fonts.ready) {
                 document.fonts.ready.then(dshScheduleCredentialActionEqualization)
               }
               var dshMo = new MutationObserver(function () {
                 dshScheduleCredentialActionEqualization()
                 dshApplySidebarBrand()
+                dshScheduleDefaultSidebarWidth()
               })
               dshMo.observe(document.body, { childList: true, subtree: true })
+              // 侧栏宽度由上游 React 写入 inline style。把此 observer 独立
+              // 于按钮尺寸 observer，避免按钮自身写入 style 时重复测量。
+              var dshSidebarWidthMo = new MutationObserver(dshScheduleDefaultSidebarWidth)
+              dshSidebarWidthMo.observe(document.body, {
+                attributes: true,
+                attributeFilter: ['style'],
+                subtree: true
+              })
 
               // 原生同步窗口需要匹配 Harness 当前选择的主题，而不是 macOS
               // 系统主题。只传递一个布尔值，不读取也不改写任何设置内容。

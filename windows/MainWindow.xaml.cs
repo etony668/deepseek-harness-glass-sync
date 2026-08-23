@@ -84,6 +84,8 @@ public sealed partial class MainWindow : Window
             HarnessWebView.CoreWebView2.NewWindowRequested += OpenExternalWindow;
             HarnessWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
             HarnessWebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
+            await HarnessWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(
+                HarnessUiInjection.Script);
             _webViewInitialized = true;
         }
         HarnessWebView.Source = url;
