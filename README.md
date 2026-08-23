@@ -197,6 +197,15 @@ repository instead: it reads the latest `master` commit through GitHub's API,
 downloads that exact commit, builds it with the app's bundled Node.js/pnpm, and
 atomically activates the result.
 
+Choose **Harness → Sync Official Harness…** from the native macOS menu:
+
+![The native Harness menu with “Sync Official Harness…” selected](同步菜单.png)
+
+When the replacement runtime has been activated and the embedded backend has
+restarted, Glass confirms the exact official commit now in use:
+
+![Official Harness sync completed successfully](同步完成.png)
+
 The `upstream/deepseek-harness` Git submodule is the exact official source
 revision the release is built from. Its current checked-in revision is visible
 with:

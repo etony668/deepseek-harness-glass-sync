@@ -170,6 +170,14 @@ Harness…」按钮不会解析官网 HTML，而是使用官方
 通过 GitHub API 读取 `master` 最新 commit，下载该精确提交，再用 App 内置的
 Node.js/pnpm 构建并原子切换运行时。
 
+在原生 macOS 菜单中选择 **Harness → 同步官方 Harness…**：
+
+![原生 Harness 菜单中已选中“同步官方 Harness…”](同步菜单.png)
+
+替换运行时激活且内置后端重启完成后，Glass 会明确显示当前正在使用的官方提交：
+
+![官方 Harness 同步完成](同步完成.png)
+
 `upstream/deepseek-harness` Git submodule 是每个 Glass Release 实际构建所用的
 官方源码版本。查看当前锁定提交：
 
