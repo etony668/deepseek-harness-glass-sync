@@ -30,6 +30,19 @@ jobs:
         shell: pwsh
         run: .\windows\package.ps1 -Architecture x64
 
+      - name: Print Windows runtime diagnostics on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Write-Output "== dsh smoke stdout =="
+          if (Test-Path windows\build\dsh-smoke.log) {
+            Get-Content windows\build\dsh-smoke.log -Tail 150
+          }
+          Write-Output "== dsh smoke stderr =="
+          if (Test-Path windows\build\dsh-smoke.log.err) {
+            Get-Content windows\build\dsh-smoke.log.err -Tail 150
+          }
+
       - name: Upload unpackaged Windows app
         uses: actions/upload-artifact@v4
         with:

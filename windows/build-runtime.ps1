@@ -132,7 +132,14 @@ try {
         if ($process.HasExited) { break }
     }
     if (-not $ready) {
-        if (Test-Path -LiteralPath $smokeLog) { Get-Content -LiteralPath $smokeLog -Tail 50 }
+        Write-Output '== dsh web smoke stdout =='
+        if (Test-Path -LiteralPath $smokeLog) {
+            Get-Content -LiteralPath $smokeLog -Tail 100
+        }
+        Write-Output '== dsh web smoke stderr =='
+        if (Test-Path -LiteralPath "$smokeLog.err") {
+            Get-Content -LiteralPath "$smokeLog.err" -Tail 100
+        }
         throw 'Timed out waiting for the official dsh web profile.'
     }
     Write-Output 'official dsh web smoke test passed'
