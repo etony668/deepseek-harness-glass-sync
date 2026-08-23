@@ -26,10 +26,10 @@ are available at the linked sources.
 
 - Project: <https://nodejs.org/>
 - License: MIT (with bundled dependencies under their own permissive licenses)
-- Usage: the official Node.js v24 darwin-arm64 binary is bundled to run the
-  dsh backend. A fixed pnpm package is also bundled and launched through that
-  Node binary for official `dsh plugin --profile web` management, so end users
-  do not need a system Node.js or pnpm installation.
+- Usage: the official Node.js v24 darwin-arm64 or win-x64/win-arm64 binary is
+  bundled to run the dsh backend. A fixed pnpm package is also bundled and
+  launched through that Node binary for official `dsh plugin --profile web`
+  management, so end users do not need a system Node.js or pnpm installation.
 
 ## pnpm
 
@@ -43,6 +43,15 @@ are available at the linked sources.
 - The Liquid Glass window uses public SwiftUI/AppKit APIs
   (`glassEffect`, `NSVisualEffectView`, transparency and full-size-content
   window options) available on macOS 26 and later. No private APIs are used.
+
+## Microsoft Windows App SDK and WebView2
+
+- Projects: <https://learn.microsoft.com/windows/apps/windows-app-sdk/> and
+  <https://developer.microsoft.com/microsoft-edge/webview2/>
+- Usage: the Windows host uses WinUI 3 for native Mica/Acrylic surfaces and
+  WebView2 to display the official Harness web profile. The Windows build
+  restores these packages from NuGet; they are not copied from the original
+  macOS project.
 
 ## Fonts
 

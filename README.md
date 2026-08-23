@@ -36,10 +36,15 @@ API.
 
 ## Requirements
 
-- macOS 26 or later (Liquid Glass is a Tahoe-era API)
-- Apple Silicon (arm64)
+- **macOS:** macOS 26 or later and Apple Silicon (arm64). The macOS shell uses
+  the Tahoe-era Liquid Glass API.
+- **Windows:** Windows 11 is recommended for native Mica/Acrylic. Windows 10
+  version 2004 (build 19041) or later can run the app with a solid system
+  backdrop fallback. x64 and ARM64 source builds are supported.
 
 ## Installation
+
+### macOS
 
 Download `DeepSeek Harness Glass Sync-<version>.dmg` from this repository's
 **Releases** page, open it, and drag the app into **Applications**.
@@ -47,6 +52,13 @@ Download `DeepSeek Harness Glass Sync-<version>.dmg` from this repository's
 The build is ad-hoc signed and not notarized. On first launch, macOS shows an
 "unidentified developer" prompt: **right-click the app → Open**, then confirm.
 This is required once.
+
+### Windows
+
+Download and extract `DeepSeekHarnessGlass-win-x64-<version>.zip` from
+**Releases**, then keep the entire extracted folder together and launch
+`DeepSeekHarnessGlass.exe`. The app is unpackaged rather than MSIX-signed, so
+Windows may show a SmartScreen prompt for an unsigned community build.
 
 On first run, open **Settings** in the app and enter your own DeepSeek API
 key. The app stores its data in `~/.dsh`, the same home directory the dsh CLI
@@ -61,6 +73,9 @@ picked up automatically.
 - **Full-window glass** — the glass extends into the title bar area
   (`fullSizeContentView` + a zero-safe-area hosting view), so there is no
   unglazed strip at the top.
+- **Windows native glass** — the Windows host is WinUI 3 + WebView2. It uses
+  the Windows 11 Mica system backdrop and Acrylic status surface, with an
+  automatic solid-color fallback when those effects are unavailable.
 - **Official full runtime** — the app packages the official Harness source
   checkout's deployed `@deepseek-ai/dsh` closure, including every shipped
   profile bundle and Web plugin. It is not a reduced Web-only payload.
@@ -75,9 +90,9 @@ picked up automatically.
 - **Fullscreen-safe restart** — a sync-triggered backend restart restores the
   prior maximized or native full-screen presentation and forces the rebuilt
   WebView to fill its content area again.
-- **Native editing shortcuts** — standard macOS actions including
-  ⌘Z/⇧⌘Z, ⌘X, ⌘C, ⌘V, ⌘A, and Find are delivered through AppKit's responder
-  chain to the focused Harness editor.
+- **Native editing shortcuts** — on macOS, ⌘Z/⇧⌘Z, ⌘X, ⌘C, ⌘V, ⌘A, and Find
+  are delivered through AppKit's responder chain to the focused editor. On
+  Windows, WebView2 receives the standard Ctrl-based editing shortcuts.
 - **Readable in both themes** — the glass layer keeps explicit light and dark
   foreground/background tokens so wallpaper luminance cannot make the
   official UI unreadable.
@@ -159,6 +174,11 @@ Clone with the official Harness submodule:
 ```sh
 git clone --recurse-submodules https://github.com/etony668/deepseek-harness-glass-sync.git
 cd deepseek-harness-glass-sync
+```
+
+### macOS
+
+```sh
 
 # Downloads the fixed Node/pnpm versions, installs and builds the official
 # Harness source, deploys its full production runtime, then smoke-tests `dsh web`.
@@ -185,7 +205,40 @@ hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
 ```
 
 A `v*` tag pushed to GitHub triggers `.github/workflows/release.yml`, which
-performs all of the above and attaches the DMG to a Release.
+builds the macOS DMG and the Windows x64 ZIP, then attaches both to a Release.
+
+### Windows
+
+Build on a Windows machine with the .NET 8 SDK and Git installed. The script
+downloads the pinned Windows Node.js/pnpm toolchain itself; a system Node.js or
+pnpm installation is not required.
+
+```powershell
+git clone --recurse-submodules https://github.com/etony668/deepseek-harness-glass-sync.git
+cd deepseek-harness-glass-sync
+
+# Allow only this PowerShell session to run the repository build scripts.
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+# Builds the official Harness runtime, smoke-tests it, publishes the self-
+# contained WinUI 3 shell, and copies all runtime resources beside the .exe.
+.\windows\package.ps1 -Architecture x64
+
+.\windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe
+```
+
+For Windows on ARM, replace `x64` with `arm64`. To rebuild only the native
+shell against an already prepared runtime, use:
+
+```powershell
+.\windows\package.ps1 -Architecture x64 -SkipRuntimeBuild
+```
+
+The app folder is portable only as a whole: keep `Resources\` alongside
+`DeepSeekHarnessGlass.exe`. It runs the same official `web` profile and stores
+updates under `%LOCALAPPDATA%\DeepSeek Harness Glass\runtime\`; it still uses
+`%USERPROFILE%\.dsh` (or an explicit `DSH_HOME`) for credentials, sessions,
+profiles, and plugins.
 
 ## Updating official Harness
 
@@ -197,7 +250,7 @@ repository instead: it reads the latest `master` commit through GitHub's API,
 downloads that exact commit, builds it with the app's bundled Node.js/pnpm, and
 atomically activates the result.
 
-Choose **Harness → Sync Official Harness…** from the native macOS menu:
+Choose **Harness → Sync Official Harness…** from the native menu:
 
 ![The native Harness menu with “Sync Official Harness…” selected](同步菜单.png)
 
@@ -228,10 +281,11 @@ rarely conflict with the native UI work. For a reproducible historical build,
 do not run the sync script: use the committed submodule revision.
 
 In-app synchronization stores versioned runtimes under
-`~/Library/Application Support/DeepSeek Harness Glass/runtime/`; it never rewrites
-the signed app bundle or `$DSH_HOME`, so credentials, sessions, and installed
-plugins remain untouched. If a download or build fails, the previous active
-runtime remains in place.
+`~/Library/Application Support/DeepSeek Harness Glass/runtime/` on macOS and
+`%LOCALAPPDATA%\DeepSeek Harness Glass\runtime\` on Windows. It never rewrites
+the app bundle or `$DSH_HOME`, so credentials, sessions, and installed plugins
+remain untouched. If a download or build fails, the previous active runtime
+remains in place.
 
 ## Troubleshooting
 
@@ -257,6 +311,13 @@ glass/
   repair-backend.sh      rebuild official runtime + repackage
   runtime/versions.env   fixed embedded Node/pnpm versions
   Info.plist             bundle metadata (LSMinimumSystemVersion 26.0)
+windows/
+  DeepSeekHarnessGlass.Windows.csproj  WinUI 3 + WebView2 native host
+  MainWindow.xaml(.cs)    Mica/Acrylic UI, menus, and sync progress
+  HarnessBackend.cs       official runtime / plugin / sync controller
+  build-runtime.ps1       build and smoke-test the official Windows runtime
+  package.ps1             publish the portable Windows app folder
+  runtime/                bundled pnpm wrapper and sync script
 scripts/
   sync-upstream.sh       advance official Harness submodule to origin/master
   build-runtime.sh       build/deploy/smoke-test the full official runtime
@@ -267,13 +328,15 @@ build/icon.icns          app icon, derived from the dsh whale favicon
 
 ## Design notes
 
-The window is `isOpaque = false` with a clear background so the glass material
-can refract the desktop behind it. Web content deliberately cannot sample
-what is behind a window (a platform privacy boundary), so the elevated
-surfaces use layered tints plus `backdrop-filter` over the page's own content
-rather than a second native blur pass. Text tokens are kept solid to avoid
-backdrop color bleeding through glyphs, with a 0.5% white underlay and
-antialiased font smoothing.
+On macOS, the window is `isOpaque = false` with a clear background so the
+Liquid Glass material can refract the desktop behind it. Web content
+deliberately cannot sample what is behind a window (a platform privacy
+boundary), so elevated surfaces use layered tints plus `backdrop-filter` over
+the page's own content rather than a second native blur pass. On Windows, the
+outer WinUI 3 window uses the operating system's Mica backdrop and the native
+status overlay uses Acrylic; unsupported systems automatically use system
+solid surfaces. Text tokens are kept solid to avoid backdrop color bleeding
+through glyphs.
 
 ## Disclaimer
 

@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Native Windows host built with WinUI 3 and WebView2. The outer window uses
+  Windows 11 Mica, while its native start/sync surface uses Acrylic with a
+  system solid-color fallback.
+- Windows x64 and ARM64 build scripts that download the fixed Node.js/pnpm
+  toolchain, build and smoke-test the complete official Harness runtime, then
+  publish a portable self-contained app folder.
+- Windows native menu actions for official runtime sync, backend restart,
+  browser launch, `DSH_HOME`, logs, and official
+  `dsh plugin --profile web` package add/remove commands.
+
 ## [0.5.0] - 2026-08-21
 
 ### Added

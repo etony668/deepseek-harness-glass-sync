@@ -1,0 +1,100 @@
+<Window
+    x:Class="DeepSeekHarnessGlass.Windows.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    xmlns:local="using:DeepSeekHarnessGlass.Windows">
+    <Grid x:Name="RootGrid" Loaded="RootGrid_Loaded">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0,12,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                <FontIcon Glyph="&#xE8FD;" FontSize="17" />
+                <TextBlock Text="DeepSeek Harness Glass Sync"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="Windows"
+                           Opacity="0.62"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <controls:MenuBar Grid.Column="1"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Center">
+                <controls:MenuBarItem Title="Harness">
+                    <controls:MenuFlyoutItem x:Name="SyncOfficialMenuItem"
+                                              Text="Sync Official Harness…"
+                                              Click="SyncOfficialHarness_Click" />
+                    <controls:MenuFlyoutItem Text="Restart Backend"
+                                              Click="RestartBackend_Click" />
+                    <controls:MenuFlyoutItem Text="Open in Browser"
+                                              Click="OpenInBrowser_Click" />
+                    <controls:MenuFlyoutSeparator />
+                    <controls:MenuFlyoutSubItem Text="Plugins">
+                        <controls:MenuFlyoutItem Text="Install Plugin Package…"
+                                                  Click="InstallPlugin_Click" />
+                        <controls:MenuFlyoutItem Text="Remove Plugin Package…"
+                                                  Click="RemovePlugin_Click" />
+                        <controls:MenuFlyoutSeparator />
+                        <controls:MenuFlyoutItem Text="Open Web Profile Folder"
+                                                  Click="OpenWebProfile_Click" />
+                    </controls:MenuFlyoutSubItem>
+                    <controls:MenuFlyoutSeparator />
+                    <controls:MenuFlyoutItem Text="Open DSH_HOME"
+                                              Click="OpenDshHome_Click" />
+                    <controls:MenuFlyoutItem Text="Open Backend Log"
+                                              Click="OpenBackendLog_Click" />
+                </controls:MenuBarItem>
+                <controls:MenuBarItem Title="Help">
+                    <controls:MenuFlyoutItem Text="About"
+                                              Click="About_Click" />
+                </controls:MenuBarItem>
+            </controls:MenuBar>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <controls:WebView2 x:Name="HarnessWebView" />
+
+            <Border x:Name="StatusOverlay"
+                    Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                    Visibility="Visible">
+                <StackPanel Width="480"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="12">
+                    <ProgressRing x:Name="StatusRing"
+                                  Width="34"
+                                  Height="34"
+                                  IsActive="True"
+                                  HorizontalAlignment="Center" />
+                    <TextBlock x:Name="StatusTitle"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <TextBlock x:Name="StatusDetail"
+                               Opacity="0.76"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <ProgressBar x:Name="SyncProgress"
+                                 Minimum="0"
+                                 Maximum="1"
+                                 Height="6"
+                                 Visibility="Collapsed" />
+                    <Button x:Name="RetryButton"
+                            Content="Retry"
+                            Click="RetryButton_Click"
+                            Visibility="Collapsed"
+                            HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

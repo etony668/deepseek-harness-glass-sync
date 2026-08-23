@@ -1,0 +1,38 @@
+name: windows-build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "windows/**"
+      - "scripts/**"
+      - "glass/runtime/**"
+      - "upstream/deepseek-harness"
+      - ".github/workflows/windows-build.yml"
+  pull_request:
+    paths:
+      - "windows/**"
+      - "scripts/**"
+      - "glass/runtime/**"
+      - "upstream/deepseek-harness"
+      - ".github/workflows/windows-build.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build Windows x64 app and official runtime
+        shell: pwsh
+        run: .\windows\package.ps1 -Architecture x64
+
+      - name: Upload unpackaged Windows app
+        uses: actions/upload-artifact@v4
+        with:
+          name: DeepSeekHarnessGlass-win-x64
+          path: windows/dist/DeepSeekHarnessGlass-win-x64
+          if-no-files-found: error

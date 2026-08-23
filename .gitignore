@@ -7,6 +7,10 @@ glass/release-glass/
 glass/dist/
 DeepSeek Harness.app/
 .app-staging/
+windows/build/
+windows/dist/
+windows/bin/
+windows/obj/
 
 # Local-only material. The Task Board plugin is maintained and released from
 # its own repository; do not vendor its archive, promotion tools, screenshots,

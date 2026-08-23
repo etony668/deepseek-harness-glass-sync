@@ -40,9 +40,51 @@ jobs:
             -ov -format UDZO "DeepSeek Harness Glass Sync-${GITHUB_REF_NAME}.dmg"
           rm -rf dmg-stage
 
+      - name: Upload macOS release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: "DeepSeek Harness Glass Sync-*.dmg"
+          if-no-files-found: error
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build Windows x64 app
+        shell: pwsh
+        run: .\windows\package.ps1 -Architecture x64
+
+      - name: Create Windows ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "windows\dist\DeepSeekHarnessGlass-win-x64\*" `
+            -DestinationPath "DeepSeekHarnessGlass-win-x64-${env:GITHUB_REF_NAME}.zip" `
+            -CompressionLevel Optimal
+
+      - name: Upload Windows release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: "DeepSeekHarnessGlass-win-x64-*.zip"
+          if-no-files-found: error
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          files: "DeepSeek Harness Glass Sync-*.dmg"
+          files: release-assets/*
           draft: false
           generate_release_notes: true

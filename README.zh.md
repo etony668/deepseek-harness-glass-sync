@@ -31,16 +31,27 @@ API。
 
 ## 系统要求
 
-- macOS 26 或更高（液态玻璃是 Tahoe 时代的 API）
-- Apple 芯片（arm64）
+- **macOS：** macOS 26 或更高、Apple 芯片（arm64）；macOS 外壳使用 Tahoe
+  时代的 Liquid Glass API。
+- **Windows：** 推荐 Windows 11，以获得原生 Mica/Acrylic 毛玻璃效果。Windows 10
+  2004（19041）或更高也可运行，会自动回退为实色系统背景；支持 x64 与 ARM64
+  源码构建。
 
 ## 安装
+
+### macOS
 
 从本仓库的 **Releases** 下载 `DeepSeek Harness Glass Sync-<版本>.dmg`，打开后把
 应用拖进「应用程序」。
 
 当前构建为 ad-hoc 签名、未公证。首次打开时 macOS 会提示「无法验证开发者」：
 **右键点击应用 → 打开**，再确认一次即可（仅需一次）。
+
+### Windows
+
+从 **Releases** 下载并解压 `DeepSeekHarnessGlass-win-x64-<版本>.zip`，保持整个
+解压后的文件夹完整，再启动 `DeepSeekHarnessGlass.exe`。该版本是未 MSIX 签名的
+便携式社区构建，Windows 可能显示 SmartScreen 提示。
 
 首次运行后在应用内的「设置」中填入你自己的 DeepSeek API Key。应用数据存放于
 `~/.dsh`——与 dsh 命令行版共用同一目录，已有的会话、profile 和
@@ -52,6 +63,9 @@ API。
   折射全部由系统渲染，与 macOS 26 自带应用同款。
 - **全窗玻璃** — 玻璃延伸到标题栏区域（`fullSizeContentView` + 零安全区宿主
   视图），顶部没有"无玻璃"的条带。
+- **Windows 原生毛玻璃** — Windows 外壳使用 WinUI 3 + WebView2。主窗口使用
+  Windows 11 的 Mica 系统背景，同步/启动状态层使用 Acrylic；系统不支持时自动
+  回退为实色。
 - **完整官方运行时** — App 打包的是官方 Harness 源码构建并 deploy 的
   `@deepseek-ai/dsh` 完整依赖闭包，包含全部官方 profile bundle 和 Web 插件，
   不是简化的「只显示网页」payload。
@@ -62,8 +76,9 @@ API。
   构建失败时原先的可用运行时不会被破坏。
 - **全屏安全重启** — 同步触发后端重启后，App 会恢复此前的最大化或 macOS 原生全屏
   状态，并让重建后的 WebView 重新铺满内容区域。
-- **原生编辑快捷键** — ⌘Z/⇧⌘Z、⌘X、⌘C、⌘V、⌘A 和查找等标准 macOS 编辑动作会经由
-  AppKit responder chain 正确交给当前聚焦的 Harness 编辑器。
+- **原生编辑快捷键** — macOS 上 ⌘Z/⇧⌘Z、⌘X、⌘C、⌘V、⌘A 和查找会经由 AppKit
+  responder chain 正确交给当前聚焦的 Harness 编辑器；Windows 上 WebView2
+  直接接收标准 Ctrl 编辑快捷键。
 - **深浅色均可读** — 玻璃层为浅色和深色主题显式设置前景/背景令牌，壁纸亮度不会再让
   官方 UI 的文字失去可读性。
 - **与 CLI 共享状态** — `DSH_HOME` 默认 `~/.dsh`：凭据、会话、设置、已安装
@@ -134,6 +149,11 @@ DeepSeek Harness.app
 ```sh
 git clone --recurse-submodules https://github.com/etony668/deepseek-harness-glass-sync.git
 cd deepseek-harness-glass-sync
+```
+
+### macOS
+
+```sh
 
 # 下载固定 Node/pnpm，构建官方 Harness 源码，deploy 完整生产运行时，
 # 并对官方 `dsh web` profile 做冒烟验证。
@@ -159,7 +179,38 @@ hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
 ```
 
 推送 `v*` 标签会触发 `.github/workflows/release.yml`，自动完成以上全部步骤
-并把 DMG 挂到 Release。
+并把 macOS DMG 与 Windows x64 ZIP 一起挂到 Release。
+
+### Windows
+
+请在安装了 .NET 8 SDK 与 Git 的 Windows 机器上构建。脚本会自行下载固定版本的
+Windows Node.js/pnpm，不要求系统已安装 Node.js 或 pnpm。
+
+```powershell
+git clone --recurse-submodules https://github.com/etony668/deepseek-harness-glass-sync.git
+cd deepseek-harness-glass-sync
+
+# 只为当前 PowerShell 会话允许运行仓库中的构建脚本。
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+# 构建官方 Harness runtime、冒烟验证、发布自包含 WinUI 3 外壳，
+# 并把运行时资源复制到 .exe 旁。
+.\windows\package.ps1 -Architecture x64
+
+.\windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe
+```
+
+Windows on ARM 请把 `x64` 改为 `arm64`。若已构建 runtime、只需要重新发布原生
+外壳，可使用：
+
+```powershell
+.\windows\package.ps1 -Architecture x64 -SkipRuntimeBuild
+```
+
+Windows App 文件夹必须整体保留：`Resources\` 必须和
+`DeepSeekHarnessGlass.exe` 位于同一输出目录。它运行的是同一个官方 `web` profile，
+运行时更新保存在 `%LOCALAPPDATA%\DeepSeek Harness Glass\runtime\`；凭据、会话、
+profile 和插件仍使用 `%USERPROFILE%\.dsh`（或显式设置的 `DSH_HOME`）。
 
 ## 同步官方 Harness
 
@@ -170,7 +221,7 @@ Harness…」按钮不会解析官网 HTML，而是使用官方
 通过 GitHub API 读取 `master` 最新 commit，下载该精确提交，再用 App 内置的
 Node.js/pnpm 构建并原子切换运行时。
 
-在原生 macOS 菜单中选择 **Harness → 同步官方 Harness…**：
+在原生菜单中选择 **Harness → 同步官方 Harness…**：
 
 ![原生 Harness 菜单中已选中“同步官方 Harness…”](同步菜单.png)
 
@@ -197,10 +248,11 @@ cd glass && ./assemble.sh
 submodule 外，因此普通官方更新通常不会与原生 UI 改动冲突。若要可复现地构建
 旧版本，请不要执行同步脚本，直接使用 Git 已锁定的 submodule 提交。
 
-App 内同步的版本化运行时保存在
-`~/Library/Application Support/DeepSeek Harness Glass/runtime/`，不会改写已签名
-的 App bundle，也不会覆盖 `$DSH_HOME`；凭据、会话和已安装插件保持原样。下载或
-构建失败时，当前正在使用的旧运行时仍会保留。
+App 内同步的版本化运行时在 macOS 上保存在
+`~/Library/Application Support/DeepSeek Harness Glass/runtime/`，Windows 上保存在
+`%LOCALAPPDATA%\DeepSeek Harness Glass\runtime\`。它不会改写 App bundle，也不会
+覆盖 `$DSH_HOME`；凭据、会话和已安装插件保持原样。下载或构建失败时，当前正在使用
+的旧运行时仍会保留。
 
 ## 故障排查
 
@@ -225,6 +277,13 @@ glass/
   repair-backend.sh      重建官方运行时 + 重新打包
   runtime/versions.env   内置 Node/pnpm 固定版本
   Info.plist             bundle 元数据（LSMinimumSystemVersion 26.0）
+windows/
+  DeepSeekHarnessGlass.Windows.csproj  WinUI 3 + WebView2 原生外壳
+  MainWindow.xaml(.cs)    Mica/Acrylic 界面、菜单与同步进度
+  HarnessBackend.cs       官方 runtime / 插件 / 同步控制器
+  build-runtime.ps1       构建并冒烟测试官方 Windows runtime
+  package.ps1             发布便携式 Windows App 文件夹
+  runtime/                内置 pnpm wrapper 和同步脚本
 scripts/
   sync-upstream.sh       将官方 Harness submodule 前进到 origin/master
   build-runtime.sh       构建/deploy/冒烟测试完整官方运行时
@@ -235,10 +294,11 @@ build/icon.icns          应用图标（源自 dsh 鲸鱼 favicon）
 
 ## 设计说明
 
-窗口 `isOpaque = false`、背景透明，玻璃材质才能折射桌面。网页内容出于平台
-隐私边界无法采样窗口背后的画面，因此悬浮面采用分层着色 + 对页面自身内容做
-`backdrop-filter`，而非第二道原生模糊。文字令牌保持纯色，配合 0.5% 白色衬底
-与抗锯齿渲染，避免背景色渗入字形。
+macOS 窗口采用 `isOpaque = false` 与透明背景，Liquid Glass 材质才能折射桌面。
+网页内容出于平台隐私边界无法采样窗口背后的画面，因此悬浮面采用分层着色 + 对
+页面自身内容做 `backdrop-filter`，而非第二道原生模糊。Windows 则由外层 WinUI 3
+窗口使用系统 Mica，原生状态层使用 Acrylic；系统不支持时自动使用实色表面。文字
+令牌保持纯色，避免背景色渗入字形。
 
 ## 免责声明
 
