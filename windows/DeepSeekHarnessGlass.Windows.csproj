@@ -13,6 +13,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <PublishTrimmed>false</PublishTrimmed>
+    <!-- `windows/build` holds the bundled Node/pnpm runtime. Exclude it from
+         the SDK's recursive source globs so node-gyp's C# helper sources are
+         never compiled as part of the WinUI application. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);build/**;dist/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
