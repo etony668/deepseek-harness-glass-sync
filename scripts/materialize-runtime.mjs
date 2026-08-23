@@ -1,5 +1,5 @@
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
 const [harnessArgument, backendArgument] = process.argv.slice(2)
@@ -19,7 +19,10 @@ const workspaceRoots = [
 const packageByName = new Map()
 for (const workspaceRoot of workspaceRoots) {
   for (const path of walk(workspaceRoot)) {
-    if (!path.endsWith('/package.json')) continue
+    // `walk()` returns platform-native paths. A POSIX-only `/package.json`
+    // suffix silently skipped every workspace manifest in the Windows build,
+    // leaving only the CLI root package in the materialized closure.
+    if (basename(path) !== 'package.json') continue
     const manifest = readJson(path)
     if (typeof manifest.name !== 'string') continue
     packageByName.set(manifest.name, { dir: join(path, '..'), manifest })
