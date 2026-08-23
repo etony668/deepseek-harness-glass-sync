@@ -5,6 +5,19 @@
 glass/build/
 glass/release-glass/
 glass/dist/
+DeepSeek Harness.app/
+.app-staging/
+
+# Local-only material. The Task Board plugin is maintained and released from
+# its own repository; do not vendor its archive, promotion tools, screenshots,
+# or machine-specific maintenance scripts here.
+dsh-task-board-release.zip
+promo/
+.tools/
+i18n_client.py
+i18n_host.py
+PixPin_*.png
+任务看板*.png
 
 # Unrelated local folders
 mac阵列音箱/

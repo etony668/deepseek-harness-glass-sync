@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-21
+
+### Added
+
+- The official DeepSeek Harness source is now pinned as the
+  `upstream/deepseek-harness` Git submodule, initially at
+  `dsh-v0.1.1-rc.1`.
+- `scripts/sync-upstream.sh` advances that source baseline to the official
+  `master`; `scripts/build-runtime.sh` builds it, deploys the official
+  `@deepseek-ai/dsh` runtime closure, and smoke-tests its `web` profile.
+- Fixed embedded pnpm alongside Node.js. The Swift menu and tray expose
+  official `dsh plugin --profile web add/remove` operations, so Profile Bundle
+  installation does not depend on a system pnpm.
+
+### Changed
+
+- App releases now package the full official Harness runtime built from source,
+  rather than independently pinned npm payload packages.
+- The shell starts the official `dsh web --no-open` profile and leaves Cordis
+  profile bundles, user patch layers, client modules, and dynamic plugins to
+  the official runtime.
+
 ## [0.4.0] - 2026-08-15
 
 ### Added
@@ -62,4 +84,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Electron shell prototype (superseded by 0.3.0).
 
 [0.4.0]: https://github.com/qniequn-boop/deepseek-harness-glass/releases/tag/v0.4.0
+[0.5.0]: https://github.com/qniequn-boop/deepseek-harness-glass/releases/tag/v0.5.0
 [0.3.0]: https://github.com/qniequn-boop/deepseek-harness-glass/releases/tag/v0.3.0

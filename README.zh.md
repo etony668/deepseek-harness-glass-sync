@@ -1,16 +1,33 @@
-# DeepSeek Harness Glass
+# DeepSeek Harness Glass Sync
+
+[English](README.md) · [简体中文](README.zh.md)
 
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的原生 macOS 外壳——
-**你熟悉的 dsh，装进一块真正的液态玻璃里。**
+**你熟悉的 dsh，装进真正的液态玻璃，并能持续同步官方 Harness。**
 
-DeepSeek Harness Glass 把官方 `dsh` 引擎和它的 Web 界面封装成一个自包含的
-macOS 应用。外壳不是 Electron / Tauri，而是一个精简的 SwiftUI 程序：整个窗口
+DeepSeek Harness Glass Sync 将**未经修改的官方 DeepSeek Harness 运行时**及其 Web
+界面封装进自包含的 macOS 应用。外壳不是 Electron / Tauri，而是一个精简的 SwiftUI 程序：整个窗口
 直接落在苹果公开的
 [`glassEffect`](https://developer.apple.com/documentation/swiftui/glasseffect(_:in:))
 材质上，边缘折射、透镜感和分层材质由系统渲染，与 macOS 26 原生应用一致，
 而非 CSS 模拟。
 
-- **英文 README:** [README.md](README.md)
+本项目不会重写 Harness 的插件架构。App 直接启动官方 `web` profile，完整保留
+Cordis Profile Bundle、`dsh plugin` 安装、用户 `cordis.patch.yml` 层、官方 Web
+客户端模块系统和动态 Host/Client Cordis 插件。
+
+## 来源与上游
+
+本项目是在
+[qniequn-boop/deepseek-harness-glass](https://github.com/qniequn-boop/deepseek-harness-glass)
+之上进行的实质性改造与延续。原项目提供了原生 Swift 液态玻璃外壳；本项目保留其
+署名与 MIT 许可，并增加了可维护的官方运行时同步、完整插件管理和原生稳定性修复。
+
+官方
+[deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)
+源码通过 `upstream/deepseek-harness` Git submodule 跟踪。Swift 外壳始终位于该
+submodule 外：更新官方 Harness 时无需 fork 或重写官方 Web UI、Cordis 架构或插件
+API。
 
 ## 系统要求
 
@@ -19,8 +36,8 @@ macOS 应用。外壳不是 Electron / Tauri，而是一个精简的 SwiftUI 程
 
 ## 安装
 
-从 [Releases](https://github.com/qniequn-boop/deepseek-harness-glass/releases)
-下载 `DeepSeek Harness Glass-<版本>.dmg`，打开后把应用拖进「应用程序」。
+从本仓库的 **Releases** 下载 `DeepSeek Harness Glass Sync-<版本>.dmg`，打开后把
+应用拖进「应用程序」。
 
 当前构建为 ad-hoc 签名、未公证。首次打开时 macOS 会提示「无法验证开发者」：
 **右键点击应用 → 打开**，再确认一次即可（仅需一次）。
@@ -35,11 +52,22 @@ macOS 应用。外壳不是 Electron / Tauri，而是一个精简的 SwiftUI 程
   折射全部由系统渲染，与 macOS 26 自带应用同款。
 - **全窗玻璃** — 玻璃延伸到标题栏区域（`fullSizeContentView` + 零安全区宿主
   视图），顶部没有"无玻璃"的条带。
-- **完全自包含** — 内置 Node.js v24 与完整 dsh 后端 payload
-  （`@deepseek-ai/dsh`、`@deepseek-ai/dsh-web-frontend`，精确 pin 版本）。
-  无需安装 Node.js，运行时不下载任何东西。
+- **完整官方运行时** — App 打包的是官方 Harness 源码构建并 deploy 的
+  `@deepseek-ai/dsh` 完整依赖闭包，包含全部官方 profile bundle 和 Web 插件，
+  不是简化的「只显示网页」payload。
+- **自带插件管理** — 内置固定版本 Node.js 和 pnpm。「Harness → 插件」菜单会用
+  它们调用官方 `dsh plugin --profile web`；无需用户另外安装 Node 或 pnpm。
+- **App 内官方同步** — 「Harness → 同步官方 Harness…」会解析官方 GitHub 最新提交，
+  下载该精确源码版本，以 App 内置 Node.js/pnpm 构建，并原子激活一个版本化运行时；
+  构建失败时原先的可用运行时不会被破坏。
+- **全屏安全重启** — 同步触发后端重启后，App 会恢复此前的最大化或 macOS 原生全屏
+  状态，并让重建后的 WebView 重新铺满内容区域。
+- **原生编辑快捷键** — ⌘Z/⇧⌘Z、⌘X、⌘C、⌘V、⌘A 和查找等标准 macOS 编辑动作会经由
+  AppKit responder chain 正确交给当前聚焦的 Harness 编辑器。
+- **深浅色均可读** — 玻璃层为浅色和深色主题显式设置前景/背景令牌，壁纸亮度不会再让
+  官方 UI 的文字失去可读性。
 - **与 CLI 共享状态** — `DSH_HOME` 默认 `~/.dsh`：凭据、会话、设置、已安装
-  插件与命令行版完全一致；可用 `DSH_HOME` 环境变量覆盖。
+  Profile Bundle 与命令行版完全一致；可用 `DSH_HOME` 环境变量覆盖。
 - **动态文字对比度** — 外壳在启动与更换壁纸时采样桌面壁纸平均亮度，在深/浅
   两套文字色板间带迟滞地切换；拖动窗口绝不触发翻转（苹果的设计原则：大表面
   不应随背景翻转）。
@@ -53,6 +81,30 @@ macOS 应用。外壳不是 Electron / Tauri，而是一个精简的 SwiftUI 程
   打开/打开配置目录/打开日志/退出 全套操作。
 - **干净的生命周期** — 退出、关窗或被 kill 都会先终止内置后端，不留孤儿进程。
 
+## 插件兼容性
+
+Glass 启动的是官方 `web` profile，而不是另起一套插件系统。因此官方的三条扩展
+路径都会保留：
+
+- **Profile Bundle：** 使用「Harness → 插件 → 安装插件包…」，或在兼容 CLI 中运行
+  `dsh plugin --profile web add <package>`。包会安装到
+  `$DSH_HOME/profiles/web`，在下次后端启动时由官方 Profile Loader 组合。
+- **用户 Patch 层：** `$DSH_HOME/profiles/web/cordis.patch.yml` 与
+  `$DSH_HOME/cordis.patch.yml` 按官方 dsh 完全相同的优先级生效。
+- **动态 Cordis Package：** 官方 Web API、`/plugins` 模块加载器、
+  `dsh-cordis-host-runner` 与 `dsh-cordis-client-runner` 都保留，Host/浏览器两半
+  仍使用官方的审批和生命周期流程。
+
+若 Glass 挂接的是 3080 端口上的外部 dsh 实例，安装/移除仍会更新正确的 Profile，
+但需要你自行重启该外部实例来加载更新后的 Bundle。
+
+### 配套的 Task Board 插件
+
+[dsh-task-board](https://github.com/etony668/dsh-task-board) 是一个独立开源的
+DeepSeek Harness 可视化项目任务看板插件。它不会被 vendoring 到本仓库，也**不属于**
+官方 Harness 的同步范围；请在其独立仓库安装、更新和反馈问题。这样 App 的官方运行时
+同步与插件自身的发布节奏保持解耦。
+
 ## 工作原理
 
 ```
@@ -61,11 +113,13 @@ DeepSeek Harness.app
     ├── MacOS/DeepSeek Harness        ← Swift 外壳（glass/Sources/main.swift）
     └── Resources/
         ├── node/node                 ← 内置 Node.js v24（官方二进制）
-        └── backend/node_modules/     ← 精确 pin 的 dsh 引擎 + Web 前端
+        ├── pnpm/                     ← 内置固定版本 pnpm 包
+        ├── bin/pnpm                  ← 永远使用内置 Node 的 pnpm 包装器
+        └── backend/                  ← `pnpm deploy` 的官方 dsh 产物
 ```
 
 1. 外壳用内置 Node 启动后端：
-   `node --expose-internals …/@deepseek-ai/dsh/lib/bin.js web --port 0`
+   `node --expose-internals …/backend/lib/bin.js web --no-open --port 0`
    （`--expose-internals` 是 dsh web profile 中 HMR 服务的要求）。
 2. 解析 stdout 里的 `dsh web: http://127.0.0.1:<端口>`，用透明 `WKWebView`
    加载。端口随机、只绑回环地址，不对外暴露。
@@ -75,18 +129,18 @@ DeepSeek Harness.app
 
 ## 从源码构建
 
-前置条件：Xcode 命令行工具（`swiftc`）、`npm`、网络连接（下载下面两项）。
+请用官方 Harness submodule 克隆：
 
 ```sh
-# 1. 内置 Node 运行时（官方二进制，精确 pin）
-mkdir -p glass/build/node
-curl -fsSL https://nodejs.org/dist/v24.19.0/node-v24.19.0-darwin-arm64.tar.gz -o /tmp/node.tgz
-tar -xzf /tmp/node.tgz -C /tmp
-cp /tmp/node-v24.19.0-darwin-arm64/bin/node glass/build/node/node
+git clone --recurse-submodules https://github.com/etony668/deepseek-harness-glass-sync.git
+cd deepseek-harness-glass-sync
 
-# 2. 后端 payload（npm 精确 pin）+ 冒烟测试 + 组装
-cd glass
-./repair-backend.sh
+# 下载固定 Node/pnpm，构建官方 Harness 源码，deploy 完整生产运行时，
+# 并对官方 `dsh web` profile 做冒烟验证。
+./scripts/build-runtime.sh
+
+# 打包原生外壳
+cd glass && ./assemble.sh
 ```
 
 应用默认输出到 `/Applications/DeepSeek Harness.app`；用 `APP_PATH` 指定别处：
@@ -100,22 +154,56 @@ APP_PATH="$PWD/dist/DeepSeek Harness.app" ./assemble.sh
 ```sh
 mkdir -p dmg-stage && cp -R "/Applications/DeepSeek Harness.app" dmg-stage/
 ln -s /Applications dmg-stage/Applications
-hdiutil create -volname "DeepSeek Harness Glass" -srcfolder dmg-stage \
-  -ov -format UDZO "dist/DeepSeek Harness Glass-0.3.0.dmg"
+hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
+  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.6.0.dmg"
 ```
 
 推送 `v*` 标签会触发 `.github/workflows/release.yml`，自动完成以上全部步骤
 并把 DMG 挂到 Release。
 
+## 同步官方 Harness
+
+官方产品页 [deepseek.com/harness](https://www.deepseek.com/harness/) 是产品介绍和
+使用入口，并没有提供稳定的源码版本接口。因此 App 中的「Harness → 同步官方
+Harness…」按钮不会解析官网 HTML，而是使用官方
+[deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) 仓库：
+通过 GitHub API 读取 `master` 最新 commit，下载该精确提交，再用 App 内置的
+Node.js/pnpm 构建并原子切换运行时。
+
+`upstream/deepseek-harness` Git submodule 是每个 Glass Release 实际构建所用的
+官方源码版本。查看当前锁定提交：
+
+```sh
+git submodule status
+```
+
+将它更新至官方当前 `master`，再重建：
+
+```sh
+./scripts/sync-upstream.sh
+./scripts/build-runtime.sh
+cd glass && ./assemble.sh
+```
+
+审查后把更新后的 submodule 指针提交到 Glass 仓库。Swift 外壳始终位于
+submodule 外，因此普通官方更新通常不会与原生 UI 改动冲突。若要可复现地构建
+旧版本，请不要执行同步脚本，直接使用 Git 已锁定的 submodule 提交。
+
+App 内同步的版本化运行时保存在
+`~/Library/Application Support/DeepSeek Harness Glass/runtime/`，不会改写已签名
+的 App bundle，也不会覆盖 `$DSH_HOME`；凭据、会话和已安装插件保持原样。下载或
+构建失败时，当前正在使用的旧运行时仍会保留。
+
 ## 故障排查
 
-**「DeepSeek Harness 启动失败（code 1）」** — 内置后端 payload 缺包。运行：
+**「DeepSeek Harness 启动失败（code 1）」** — 内置官方运行时可能不完整。请按锁定
+的官方源码重新构建：
 
 ```sh
 cd glass && ./repair-backend.sh
 ```
 
-该脚本会以精确 pin 重装 payload、冒烟测试后端并重新打包。
+该脚本会重建完整官方运行时、冒烟测试官方 Web profile，并重新打包。
 
 **App 与 CLI 不能同时运行** — 两者共用 `~/.dsh`。需要同时运行时给 App 设置
 不同的 `DSH_HOME`。
@@ -124,10 +212,16 @@ cd glass && ./repair-backend.sh
 
 ```
 glass/
-  Sources/main.swift     全部外壳逻辑（约 700 行，唯一自定义代码）
+  Sources/main.swift     原生外壳 + 官方插件管理菜单
   assemble.sh            构建 + ad-hoc 签名 + 原子替换
-  repair-backend.sh      一键重装 payload + 冒烟测试 + 重新打包
+  repair-backend.sh      重建官方运行时 + 重新打包
+  runtime/versions.env   内置 Node/pnpm 固定版本
   Info.plist             bundle 元数据（LSMinimumSystemVersion 26.0）
+scripts/
+  sync-upstream.sh       将官方 Harness submodule 前进到 origin/master
+  build-runtime.sh       构建/deploy/冒烟测试完整官方运行时
+upstream/deepseek-harness/
+  ...                    锁定的官方源码 Git submodule
 build/icon.icns          应用图标（源自 dsh 鲸鱼 favicon）
 ```
 
@@ -140,9 +234,12 @@ build/icon.icns          应用图标（源自 dsh 鲸鱼 favicon）
 
 ## 免责声明
 
-本项目是开源 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
-的独立、非官方外壳，与 DeepSeek 无隶属或背书关系。「DeepSeek」及相关标识归
-其权利人所有。
+本项目是
+[deepseek-harness-glass](https://github.com/qniequn-boop/deepseek-harness-glass)
+的独立、非官方延续，也是开源
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的独立、
+非官方外壳；与 DeepSeek、原 Glass 项目作者及其所属组织均无隶属或背书关系。
+「DeepSeek」及相关标识归其权利人所有。
 
 ## 许可证
 
