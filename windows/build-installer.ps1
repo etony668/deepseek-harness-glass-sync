@@ -43,15 +43,38 @@ if ($null -eq $wix) {
 New-Item -ItemType Directory -Force -Path $releaseRoot | Out-Null
 $output = Join-Path $releaseRoot "DeepSeekHarnessGlass-win-$Architecture-v$Version.msi"
 
-& $wix.Source build $installerSource `
-    -arch $Architecture `
-    -bindpath "PublishDir=$publishRoot" `
-    -d "ProductVersion=$Version" `
-    -ext WixToolset.UI.wixext `
-    -o $output
+$driveLetter = @('X', 'Y', 'Z') |
+    Where-Object { -not (Test-Path -LiteralPath ("{0}:\" -f $_)) } |
+    Select-Object -First 1
+if ([string]::IsNullOrWhiteSpace($driveLetter)) {
+    throw 'No free X:, Y:, or Z: drive letter is available for the WiX staging path.'
+}
 
+# WiX's native cabinet helper does not consistently support the deeply nested
+# paths in the official Node runtime closure. Give it a temporary short source
+# path without copying or mutating the published application files.
+$shortPublishRoot = "{0}:\" -f $driveLetter
+& $env:ComSpec /d /c @('subst', ("{0}:" -f $driveLetter), $publishRoot) | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    throw "WiX MSI build failed with exit code $LASTEXITCODE."
+    throw "Could not create the temporary $shortPublishRoot WiX staging drive."
+}
+
+$wixExitCode = 1
+try {
+    & $wix.Source build $installerSource `
+        -arch $Architecture `
+        -bindpath "PublishDir=$shortPublishRoot" `
+        -d "ProductVersion=$Version" `
+        -ext WixToolset.UI.wixext `
+        -o $output
+    $wixExitCode = $LASTEXITCODE
+}
+finally {
+    & $env:ComSpec /d /c @('subst', ("{0}:" -f $driveLetter), '/d') | Out-Null
+}
+
+if ($wixExitCode -ne 0) {
+    throw "WiX MSI build failed with exit code $wixExitCode."
 }
 
 Write-Output '== MSI complete =='
