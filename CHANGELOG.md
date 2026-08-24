@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.9] - 2026-08-24
+
+### Fixed
+
+- Changed the Windows MSI to a current-user installation under
+  `%LOCALAPPDATA%\Programs`, avoiding per-machine elevation requirements in
+  unattended installs and preserving the user-owned `%USERPROFILE%\.dsh` data
+  boundary.
+- Restored mandatory Windows MSI CI verification: install the MSI, launch the
+  installed app, uninstall it, and confirm a `DSH_HOME` sentinel remains.
+
 ## [0.5.8] - 2026-08-24
 
 ### Changed

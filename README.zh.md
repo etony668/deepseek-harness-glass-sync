@@ -59,8 +59,9 @@ API。
 
 如果希望正常安装，请从 **Releases** 下载
 `DeepSeekHarnessGlass-win-x64-<版本>.msi` 并运行。安装器会把完整应用安装到
-「Program Files」，并创建开始菜单快捷方式；卸载时不会删除 `~/.dsh` 中的用户数据。
-当前 MSI 为未签名的社区构建，Windows 可能显示 SmartScreen 或 UAC 提示。
+`%LOCALAPPDATA%\Programs\DeepSeek Harness Glass`，并创建开始菜单快捷方式；
+卸载时不会删除 `~/.dsh` 中的用户数据。当前 MSI 为未签名的社区构建，Windows
+可能显示 SmartScreen 提示。
 
 从 **Releases** 下载并解压 `DeepSeekHarnessGlass-win-x64-<版本>.zip`，保持整个
 解压后的文件夹完整，再启动 `DeepSeekHarnessGlass.exe`。该版本是未 MSIX 签名的
@@ -193,7 +194,7 @@ APP_PATH="$PWD/dist/DeepSeek Harness.app" ./assemble.sh
 mkdir -p dmg-stage && cp -R "/Applications/DeepSeek Harness.app" dmg-stage/
 ln -s /Applications dmg-stage/Applications
 hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
-  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.8.dmg"
+  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.9.dmg"
 ```
 
 推送 `v*` 标签会触发 `.github/workflows/release.yml`，自动完成以上全部步骤，
@@ -218,7 +219,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe
 
 # 发布文件夹准备好后，使用 WiX 构建 MSI 安装包。
-.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.8
+.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.9
 ```
 
 Windows on ARM 请把 `x64` 改为 `arm64`。若已构建 runtime、只需要重新发布原生

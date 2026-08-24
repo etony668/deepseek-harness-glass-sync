@@ -64,10 +64,11 @@ This is required once.
 
 For a normal installation, download
 `DeepSeekHarnessGlass-win-x64-<version>.msi` from **Releases** and run it.
-The installer places the complete app under **Program Files** and adds a Start
-Menu shortcut. It does not remove `~/.dsh` data when uninstalled. The MSI is
-currently an unsigned community build, so Windows may show a SmartScreen or
-UAC prompt.
+The installer places the complete app under
+`%LOCALAPPDATA%\Programs\DeepSeek Harness Glass` and adds a Start Menu
+shortcut. It does not remove `~/.dsh` data when uninstalled. The MSI is
+currently an unsigned community build, so Windows may show a SmartScreen
+prompt.
 
 Download and extract `DeepSeekHarnessGlass-win-x64-<version>.zip` from
 **Releases**, then keep the entire extracted folder together and launch
@@ -221,7 +222,7 @@ Create the installer image:
 mkdir -p dmg-stage && cp -R "/Applications/DeepSeek Harness.app" dmg-stage/
 ln -s /Applications dmg-stage/Applications
 hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
-  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.8.dmg"
+  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.9.dmg"
 ```
 
 A `v*` tag pushed to GitHub triggers `.github/workflows/release.yml`, which
@@ -248,7 +249,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe
 
 # After the published folder is ready, build a WiX MSI installer.
-.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.8
+.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.9
 ```
 
 For Windows on ARM, replace `x64` with `arm64`. To rebuild only the native

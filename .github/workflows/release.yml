@@ -95,14 +95,15 @@ jobs:
           .\windows\build-installer.ps1 -Architecture x64 -Version $env:GITHUB_REF_NAME
           wix msi validate "windows\dist\DeepSeekHarnessGlass-win-x64-$env:GITHUB_REF_NAME.msi"
 
-      - name: Best-effort MSI install and uninstall diagnostic
-        continue-on-error: true
+      - name: Smoke test Windows MSI install, launch, and uninstall
         shell: pwsh
         run: |
-          $msi = Resolve-Path "windows\dist\DeepSeekHarnessGlass-win-x64-$env:GITHUB_REF_NAME.msi"
-          $installRoot = Join-Path $env:RUNNER_TEMP "DeepSeek Harness Glass MSI"
+          $msi = (Resolve-Path "windows\dist\DeepSeekHarnessGlass-win-x64-$env:GITHUB_REF_NAME.msi").Path
+          $installRoot = Join-Path $env:RUNNER_TEMP "DeepSeekHarnessGlassMsi"
           $installLog = Join-Path $env:RUNNER_TEMP "DeepSeekHarnessGlass-msi-install.log"
           $uninstallLog = Join-Path $env:RUNNER_TEMP "DeepSeekHarnessGlass-msi-uninstall.log"
+          $dshSmokeRoot = Join-Path $env:USERPROFILE ".dsh\glass-msi-smoke-$env:GITHUB_RUN_ID"
+          $dshSmokeFile = Join-Path $dshSmokeRoot "sentinel.txt"
 
           function Invoke-MsiSmoke {
             param(
@@ -113,12 +114,12 @@ jobs:
 
             Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
             $process = Start-Process -FilePath msiexec.exe -ArgumentList $Arguments -PassThru
-            if (-not $process.WaitForExit(300000)) {
+            if (-not $process.WaitForExit(600000)) {
               Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
               if (Test-Path $LogPath) {
                 Get-Content $LogPath -Tail 240
               }
-              throw "MSI $Stage exceeded the 5-minute diagnostic limit. See the retained MSI log above."
+              throw "MSI $Stage exceeded the 10-minute smoke-test limit. See the retained MSI log above."
             }
             if ($process.ExitCode -notin @(0, 3010)) {
               if (Test-Path $LogPath) {
@@ -129,18 +130,47 @@ jobs:
           }
 
           Remove-Item -LiteralPath $installRoot -Recurse -Force -ErrorAction SilentlyContinue
-          Invoke-MsiSmoke -Stage "install" -LogPath $installLog -Arguments @(
-            "/i", $msi, "/qn", "/norestart", "/L*V", $installLog, "INSTALLFOLDER=$installRoot"
-          )
-          if (-not (Test-Path (Join-Path $installRoot "DeepSeekHarnessGlass.exe"))) {
-            throw "MSI install did not place the Windows executable."
-          }
-          Invoke-MsiSmoke -Stage "uninstall" -LogPath $uninstallLog -Arguments @(
-            "/x", $msi, "/qn", "/norestart", "/L*V", $uninstallLog
-          )
+          Remove-Item -LiteralPath $dshSmokeRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $dshSmokeRoot | Out-Null
+          Set-Content -LiteralPath $dshSmokeFile -Value "preserve user DSH_HOME"
 
-      - name: Upload MSI diagnostic logs
-        if: always()
+          try {
+            Invoke-MsiSmoke -Stage "install" -LogPath $installLog -Arguments @(
+              "/i", $msi, "/qn", "/norestart", "/L*V", $installLog, "INSTALLFOLDER=$installRoot"
+            )
+
+            $installedApp = Join-Path $installRoot "DeepSeekHarnessGlass.exe"
+            if (-not (Test-Path $installedApp)) {
+              throw "MSI install did not place the Windows executable."
+            }
+
+            $appProcess = Start-Process -FilePath $installedApp -WorkingDirectory $installRoot -PassThru
+            try {
+              Start-Sleep -Seconds 12
+              if ($appProcess.HasExited) {
+                throw "Installed MSI application exited during startup with code $($appProcess.ExitCode)."
+              }
+            }
+            finally {
+              if (-not $appProcess.HasExited) {
+                Stop-Process -Id $appProcess.Id -Force -ErrorAction SilentlyContinue
+              }
+            }
+
+            Invoke-MsiSmoke -Stage "uninstall" -LogPath $uninstallLog -Arguments @(
+              "/x", $msi, "/qn", "/norestart", "/L*V", $uninstallLog
+            )
+
+            if (-not (Test-Path $dshSmokeFile)) {
+              throw "MSI uninstall removed user DSH_HOME data."
+            }
+          }
+          finally {
+            Remove-Item -LiteralPath $dshSmokeRoot -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Upload MSI smoke logs on failure
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: windows-msi-smoke-logs

@@ -6,7 +6,7 @@
       Manufacturer="etony668"
       Version="$(var.ProductVersion)"
       UpgradeCode="{4B58B12B-5A7A-4DD1-9A3D-0B8D5A8A1F72}"
-      Scope="perMachine"
+      Scope="perUser"
       Language="1033">
 
     <SummaryInformation Description="DeepSeek Harness Glass Windows desktop application" />
@@ -21,8 +21,10 @@
       <ComponentRef Id="ApplicationShortcut" />
     </Feature>
 
-    <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="DeepSeek Harness Glass" />
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="DeepSeek Harness Glass" />
+      </Directory>
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder">
