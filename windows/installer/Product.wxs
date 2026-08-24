@@ -6,7 +6,7 @@
       Manufacturer="etony668"
       Version="$(var.ProductVersion)"
       UpgradeCode="{4B58B12B-5A7A-4DD1-9A3D-0B8D5A8A1F72}"
-      Scope="perUserOrMachine"
+      Scope="perMachine"
       Language="1033">
 
     <SummaryInformation Description="DeepSeek Harness Glass Windows desktop application" />
@@ -16,15 +16,12 @@
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
     <Feature Id="MainFeature" Title="DeepSeek Harness Glass" Level="1">
-      <ComponentGroupRef Id="ApplicationFiles" />
-      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="ApplicationPayload" />
       <ComponentRef Id="ApplicationShortcut" />
     </Feature>
 
-    <StandardDirectory Id="LocalAppDataFolder">
-      <Directory Id="ProgramsFolder" Name="Programs">
-        <Directory Id="INSTALLFOLDER" Name="DeepSeek Harness Glass" />
-      </Directory>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="DeepSeek Harness Glass" />
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder">
@@ -33,15 +30,9 @@
   </Package>
 
   <Fragment>
-    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
-      <Files Include="!(bindpath.PublishDir)\**">
-        <Exclude Files="!(bindpath.PublishDir)\DeepSeekHarnessGlass.exe" />
-      </Files>
-    </ComponentGroup>
-
-    <Component Id="MainExecutable" Directory="INSTALLFOLDER">
-      <File Id="MainExe"
-            Source="!(bindpath.PublishDir)\DeepSeekHarnessGlass.exe"
+    <Component Id="ApplicationPayload" Directory="INSTALLFOLDER">
+      <File Id="ApplicationPayloadZip"
+            Source="!(bindpath.PayloadDir)\DeepSeekHarnessGlass-payload.zip"
             KeyPath="yes" />
     </Component>
 
@@ -50,7 +41,7 @@
           Id="StartMenuShortcut"
           Name="DeepSeek Harness Glass"
           Description="Open DeepSeek Harness Glass"
-          Target="[#MainExe]"
+          Target="[INSTALLFOLDER]DeepSeekHarnessGlass.exe"
           WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
       <RegistryValue
@@ -61,5 +52,36 @@
           Value="1"
           KeyPath="yes" />
     </Component>
+
+    <SetProperty
+        Id="ExtractApplicationPayload"
+        Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Expand-Archive -LiteralPath '[#ApplicationPayloadZip]' -DestinationPath '[INSTALLFOLDER]' -Force; Remove-Item -LiteralPath '[#ApplicationPayloadZip]' -Force&quot;"
+        Before="ExtractApplicationPayload"
+        Sequence="execute" />
+    <CustomAction
+        Id="ExtractApplicationPayload"
+        BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+        DllEntry="WixQuietExec"
+        Execute="deferred"
+        Impersonate="no"
+        Return="check" />
+
+    <SetProperty
+        Id="RemoveExtractedApplication"
+        Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Get-Process -Name 'DeepSeekHarnessGlass' -ErrorAction SilentlyContinue | Stop-Process -Force; if (Test-Path -LiteralPath '[INSTALLFOLDER]') { Remove-Item -LiteralPath '[INSTALLFOLDER]' -Recurse -Force }&quot;"
+        Before="RemoveExtractedApplication"
+        Sequence="execute" />
+    <CustomAction
+        Id="RemoveExtractedApplication"
+        BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+        DllEntry="WixQuietExec"
+        Execute="deferred"
+        Impersonate="no"
+        Return="check" />
+
+    <InstallExecuteSequence>
+      <Custom Action="ExtractApplicationPayload" After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="RemoveExtractedApplication" Before="RemoveFiles">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
   </Fragment>
 </Wix>

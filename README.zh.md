@@ -59,8 +59,8 @@ API。
 
 如果希望正常安装，请从 **Releases** 下载
 `DeepSeekHarnessGlass-win-x64-<版本>.msi` 并运行。安装器会把完整应用安装到
-`%LOCALAPPDATA%\Programs\DeepSeek Harness Glass`，并创建开始菜单快捷方式；
-卸载时不会删除 `~/.dsh` 中的用户数据。当前 MSI 为未签名的社区构建，Windows
+`%ProgramFiles%\DeepSeek Harness Glass`，并创建开始菜单快捷方式，可能需要管理员
+确认；卸载时不会删除 `~/.dsh` 中的用户数据。当前 MSI 为未签名的社区构建，Windows
 可能显示 SmartScreen 提示。
 
 从 **Releases** 下载并解压 `DeepSeekHarnessGlass-win-x64-<版本>.zip`，保持整个

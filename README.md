@@ -65,10 +65,10 @@ This is required once.
 For a normal installation, download
 `DeepSeekHarnessGlass-win-x64-<version>.msi` from **Releases** and run it.
 The installer places the complete app under
-`%LOCALAPPDATA%\Programs\DeepSeek Harness Glass` and adds a Start Menu
-shortcut. It does not remove `~/.dsh` data when uninstalled. The MSI is
-currently an unsigned community build, so Windows may show a SmartScreen
-prompt.
+`%ProgramFiles%\DeepSeek Harness Glass`, adds a Start Menu shortcut, and may
+ask for administrator approval. It does not remove `~/.dsh` data when
+uninstalled. The MSI is currently an unsigned community build, so Windows may
+show a SmartScreen prompt.
 
 Download and extract `DeepSeekHarnessGlass-win-x64-<version>.zip` from
 **Releases**, then keep the entire extracted folder together and launch

@@ -10,11 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Switched the Windows MSI to WiX's dual-scope authoring while explicitly
-  selecting the current-user path in CI. This keeps the default
-  `%LOCALAPPDATA%\Programs` installation free of elevation prompts while
-  satisfying the Windows Installer component rules for the full bundled
-  runtime.
+- Reworked the Windows MSI around a single self-contained runtime archive.
+  The installer now expands the archive into Program Files and removes only
+  that application directory on uninstall, avoiding the Windows Installer
+  per-file component validation and performance limits of the complete
+  official runtime.
 - Added the same bounded install, installed-app launch, uninstall, and
   user-`DSH_HOME` preservation verification to the regular Windows build
   workflow, including retained MSI logs on failure.
