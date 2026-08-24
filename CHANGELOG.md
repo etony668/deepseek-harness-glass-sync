@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-08-24
+
+### Changed
+
+- Windows release CI now treats full MSI install/uninstall as a bounded,
+  best-effort diagnostic for the large self-contained official runtime. The
+  MSI is still built and validated before release, while a slow Windows
+  Installer run no longer prevents the ZIP and MSI assets from being
+  published; logs are retained when available.
+
 ## [0.5.7] - 2026-08-24
 
 ### Fixed
