@@ -18,6 +18,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   browser launch, `DSH_HOME`, logs, and official
   `dsh plugin --profile web` package add/remove commands.
 
+### Fixed
+
+- Restored the macOS Liquid Glass translucency in both Harness themes. The
+  readability fix now keeps solid foreground tokens while leaving page
+  backgrounds transparent enough for the native `.glassEffect` material to
+  refract and blur the desktop again.
+- Tuned the native WebView shell surfaces separately: Settings now uses a
+  90%-opaque theme-colored panel in both modes, while dark-mode home surfaces
+  keep only a small amount of transparency for steadier contrast.
+- Kept the light-mode home canvas on its own lower-opacity glass token set so
+  the 90%-opaque Settings panel cannot flatten the main page's translucency.
+- Fixed the Glass WebView injection template: a backtick inside the CSS
+  comment terminated the generated JavaScript template literal, so none of the
+  brand, theme, or transparency overrides were running.
+
 ## [0.5.0] - 2026-08-21
 
 ### Added

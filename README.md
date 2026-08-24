@@ -2,7 +2,9 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-![DeepSeek Harness Glass](首页.png)
+![DeepSeek Harness Glass — Light mode](浅色.png)
+
+![DeepSeek Harness Glass — Dark mode](深色.png)
 
 > **Platform support:** macOS 26+ on Apple Silicon and Windows 10 version
 > 2004+ on x64/ARM64. Windows 11 adds native Mica/Acrylic materials.

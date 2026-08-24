@@ -50,31 +50,30 @@ body::before {
 }
 body[data-ds-dark-theme] {
   /*
-   深色主题不能把主背景做成近乎透明。macOS 的玻璃会透出桌面壁纸；
-   当壁纸偏亮时，3% 深色填充会变成亮底白字，整页失去可读性。
-   保留少量透光，但给所有内容区稳定的深色衬底。
+   深色背景上只保留一层轻微透光：比浅色更稳、更不容易让桌面壁纸
+   破坏对比度，但仍让窗口级 .glassEffect 留出可见的折射空间。
    */
-  background: rgba(18, 19, 23, 0.80) !important;
-  --dsw-alias-bg-base: rgba(18, 19, 23, 0.80) !important;
-  --dsw-alias-bg-layer-1: rgba(28, 29, 34, 0.82) !important;
-  --dsw-alias-bg-layer-2: rgba(36, 37, 43, 0.86) !important;
-  --dsw-alias-bg-layer-3: rgba(44, 45, 52, 0.90) !important;
-  --dsw-alias-bg-module-platform: rgba(13, 14, 18, 0.82) !important;
+  background: transparent !important;
+  --dsw-alias-bg-base: rgba(18, 19, 23, 0.72) !important;
+  --dsw-alias-bg-layer-1: rgba(28, 29, 34, 0.76) !important;
+  --dsw-alias-bg-layer-2: rgba(36, 37, 43, 0.82) !important;
+  --dsw-alias-bg-layer-3: rgba(44, 45, 52, 0.86) !important;
+  --dsw-alias-bg-module-platform: rgba(13, 14, 18, 0.74) !important;
   --dsw-alias-bg-overlay: rgba(44, 45, 52, 0.70) !important;
-  --dsw-alias-bg-multi-select: rgba(33, 34, 40, 0.82) !important;
+  --dsw-alias-bg-multi-select: rgba(33, 34, 40, 0.74) !important;
   --dsw-alias-toast-bg: rgba(60, 60, 61, 0.92) !important;
   --dsw-alias-tooltip-bg: rgba(33, 33, 35, 0.94) !important;
-  --dsw-specific-sidebar-fill: rgba(22, 23, 28, 0.76) !important;
-  --dsw-specific-menu: rgba(38, 39, 46, 0.82) !important;
-  --dsw-specific-selector: rgba(34, 35, 41, 0.78) !important;
-  --dsw-specific-tip: rgba(36, 37, 43, 0.76) !important;
-  --dsw-specific-input-major: rgba(28, 29, 34, 0.76) !important;
-  --dsw-specific-login-input: rgba(30, 31, 37, 0.80) !important;
-  --dsw-specific-bubble: rgba(30, 31, 36, 0.72) !important;
-  --dsw-specific-bubble-highlight: rgba(30, 31, 36, 0.80) !important;
-  --dsw-hovercard-bg: rgba(38, 39, 46, 0.86) !important;
-  --dsw-alias-markdown-code-block: rgba(26, 27, 32, 0.78) !important;
-  --dsw-alias-markdown-code-block-banner: rgba(30, 31, 36, 0.82) !important;
+  --dsw-specific-sidebar-fill: rgba(22, 23, 28, 0.72) !important;
+  --dsw-specific-menu: rgba(38, 39, 46, 0.72) !important;
+  --dsw-specific-selector: rgba(34, 35, 41, 0.68) !important;
+  --dsw-specific-tip: rgba(36, 37, 43, 0.64) !important;
+  --dsw-specific-input-major: rgba(28, 29, 34, 0.60) !important;
+  --dsw-specific-login-input: rgba(30, 31, 37, 0.66) !important;
+  --dsw-specific-bubble: rgba(30, 31, 36, 0.68) !important;
+  --dsw-specific-bubble-highlight: rgba(30, 31, 36, 0.74) !important;
+  --dsw-hovercard-bg: rgba(38, 39, 46, 0.82) !important;
+  --dsw-alias-markdown-code-block: rgba(26, 27, 32, 0.74) !important;
+  --dsw-alias-markdown-code-block-banner: rgba(30, 31, 36, 0.78) !important;
   --dsw-alias-label-primary: rgb(240, 242, 245) !important;
   --dsw-alias-label-primary-dimmed: rgb(225, 229, 238) !important;
   --dsw-alias-label-primary-bluish: rgb(147, 197, 253) !important;
@@ -90,25 +89,32 @@ body[data-ds-dark-theme] {
 }
 body:not([data-ds-dark-theme]) {
   color-scheme: light !important;
-  --dsw-alias-bg-base: rgba(255, 255, 255, 0.78) !important;
-  --dsw-alias-bg-layer-1: rgba(255, 255, 255, 0.84) !important;
-  --dsw-alias-bg-layer-2: rgba(255, 255, 255, 0.92) !important;
-  --dsw-alias-bg-layer-3: rgba(255, 255, 255, 0.96) !important;
-  --dsw-alias-bg-module-platform: rgba(255, 255, 255, 0.80) !important;
-  --dsw-alias-bg-overlay: rgba(255, 255, 255, 0.92) !important;
+  background: transparent !important;
+  /*
+   浅色主页使用独立的低到中等透明度：完全 0 alpha 会让 WKWebView
+   直接露出白色窗口底，反而看不到 Liquid Glass 的乳白折射层。
+   Settings 面板在下方用自己的 90% 变量覆盖，不会把这组主页值带入
+   设置页，也不会让设置页的高不透明度反过来覆盖主页。
+   */
+  --dsw-alias-bg-base: rgba(255, 255, 255, 0.22) !important;
+  --dsw-alias-bg-layer-1: rgba(255, 255, 255, 0.30) !important;
+  --dsw-alias-bg-layer-2: rgba(255, 255, 255, 0.40) !important;
+  --dsw-alias-bg-layer-3: rgba(255, 255, 255, 0.50) !important;
+  --dsw-alias-bg-module-platform: rgba(255, 255, 255, 0.26) !important;
+  --dsw-alias-bg-overlay: rgba(255, 255, 255, 0.48) !important;
   --dsw-alias-toast-bg: rgba(60, 60, 61, 0.92) !important;
   --dsw-alias-tooltip-bg: rgba(33, 33, 35, 0.94) !important;
-  --dsw-specific-sidebar-fill: rgba(255, 255, 255, 0.76) !important;
-  --dsw-specific-menu: rgba(255, 255, 255, 0.88) !important;
-  --dsw-specific-selector: rgba(255, 255, 255, 0.84) !important;
-  --dsw-specific-tip: rgba(255, 255, 255, 0.80) !important;
-  --dsw-specific-input-major: rgba(255, 255, 255, 0.84) !important;
-  --dsw-specific-login-input: rgba(255, 255, 255, 0.88) !important;
-  --dsw-specific-bubble: rgba(255, 255, 255, 0.78) !important;
-  --dsw-specific-bubble-highlight: rgba(255, 255, 255, 0.84) !important;
-  --dsw-hovercard-bg: rgba(255, 255, 255, 0.94) !important;
-  --dsw-alias-markdown-code-block: rgba(250, 250, 250, 0.84) !important;
-  --dsw-alias-markdown-code-block-banner: rgba(255, 255, 255, 0.88) !important;
+  --dsw-specific-sidebar-fill: rgba(255, 255, 255, 0.22) !important;
+  --dsw-specific-menu: rgba(255, 255, 255, 0.34) !important;
+  --dsw-specific-selector: rgba(255, 255, 255, 0.30) !important;
+  --dsw-specific-tip: rgba(255, 255, 255, 0.26) !important;
+  --dsw-specific-input-major: rgba(255, 255, 255, 0.28) !important;
+  --dsw-specific-login-input: rgba(255, 255, 255, 0.34) !important;
+  --dsw-specific-bubble: rgba(255, 255, 255, 0.18) !important;
+  --dsw-specific-bubble-highlight: rgba(255, 255, 255, 0.26) !important;
+  --dsw-hovercard-bg: rgba(255, 255, 255, 0.42) !important;
+  --dsw-alias-markdown-code-block: rgba(250, 250, 250, 0.24) !important;
+  --dsw-alias-markdown-code-block-banner: rgba(255, 255, 255, 0.30) !important;
   /* Harness 的浅色主题必须保持深色前景。不要把壁纸采样得到的
      --glass-txt-*（深色壁纸时可能是白色）带入浅色主题，否则透明玻璃
      会让整页文字在浅色背景上几乎消失。 */
@@ -125,6 +131,28 @@ body:not([data-ds-dark-theme]) {
   --dsw-alias-markdown-inline-code: rgb(235, 238, 242) !important;
   --dsw-alias-markdown-code-segment-unselected: rgb(241, 243, 245) !important;
   --dsw-alias-state-warn-label: rgb(180, 120, 0) !important;
+}
+
+/* Settings is a focused form surface rather than the home canvas. Give its
+   panel a stable 90% theme-colored fill in both themes while leaving the
+   surrounding mask and native window glass untouched. The marker is added by
+   the script below from the stable nav-first Settings panel structure, so
+   other official dialogs keep their upstream surface treatment. */
+body[data-ds-dark-theme] [data-dsh-glass-settings-panel] {
+  background: rgba(22, 23, 28, 0.90) !important;
+  --dsw-alias-bg-base: rgba(22, 23, 28, 0.90) !important;
+  --dsw-alias-bg-layer-1: rgba(28, 29, 34, 0.90) !important;
+  --dsw-alias-bg-layer-2: rgba(36, 37, 43, 0.90) !important;
+  --dsw-alias-bg-layer-3: rgba(44, 45, 52, 0.92) !important;
+  --dsw-specific-sidebar-fill: rgba(22, 23, 28, 0.90) !important;
+}
+body:not([data-ds-dark-theme]) [data-dsh-glass-settings-panel] {
+  background: rgba(255, 255, 255, 0.90) !important;
+  --dsw-alias-bg-base: rgba(255, 255, 255, 0.90) !important;
+  --dsw-alias-bg-layer-1: rgba(255, 255, 255, 0.90) !important;
+  --dsw-alias-bg-layer-2: rgba(255, 255, 255, 0.92) !important;
+  --dsw-alias-bg-layer-3: rgba(255, 255, 255, 0.94) !important;
+  --dsw-specific-sidebar-fill: rgba(255, 255, 255, 0.90) !important;
 }
 
 /* Glass 壳只替换官方 fallback 标题，不触碰 sidebar 的结构与布局。
@@ -1138,6 +1166,21 @@ final class GlassWebViewController: NSViewController, WKNavigationDelegate, WKDo
                 })
               }
 
+              // Settings 面板是稳定的 nav-first dialog；给它加标记后由
+              // Glass CSS 单独提高面板不透明度，不影响其他官方 dialog。
+              function dshMarkSettingsPanel() {
+                var dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]')
+                for (var i = 0; i < dialogs.length; i++) {
+                  var dialog = dialogs[i]
+                  if (dialog.firstElementChild &&
+                      dialog.firstElementChild.tagName === 'NAV') {
+                    dialog.setAttribute('data-dsh-glass-settings-panel', '')
+                  } else {
+                    dialog.removeAttribute('data-dsh-glass-settings-panel')
+                  }
+                }
+              }
+
               // 官方 fallback 品牌名称与 commit 徽标位于同一个 .brandName 中。
               // 仅用精确文本识别该 fallback span，给它加稳定标记后由 Glass CSS
               // 修正相邻徽标的行高和垂直对齐；不依赖可能随上游改动的 CSS Module
@@ -1227,6 +1270,7 @@ final class GlassWebViewController: NSViewController, WKNavigationDelegate, WKDo
               }
 
               dshScheduleCredentialActionEqualization()
+              dshMarkSettingsPanel()
               dshApplySidebarBrand()
               dshScheduleDefaultSidebarWidth()
               if (document.fonts && document.fonts.ready) {
@@ -1234,6 +1278,7 @@ final class GlassWebViewController: NSViewController, WKNavigationDelegate, WKDo
               }
               var dshMo = new MutationObserver(function () {
                 dshScheduleCredentialActionEqualization()
+                dshMarkSettingsPanel()
                 dshApplySidebarBrand()
                 dshScheduleDefaultSidebarWidth()
               })

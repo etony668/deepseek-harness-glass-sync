@@ -2,7 +2,9 @@
 
 [English](README.md) · [简体中文](README.zh.md)
 
-![DeepSeek Harness Glass](首页.png)
+![DeepSeek Harness Glass — 浅色模式](浅色.png)
+
+![DeepSeek Harness Glass — 深色模式](深色.png)
 
 > **系统支持：** Apple 芯片（arm64）的 macOS 26 或更高版本，以及 Windows 10
 > 2004（19041）或更高版本（x64/ARM64）。Windows 11 额外提供原生
