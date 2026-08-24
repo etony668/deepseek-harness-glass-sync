@@ -193,7 +193,7 @@ APP_PATH="$PWD/dist/DeepSeek Harness.app" ./assemble.sh
 mkdir -p dmg-stage && cp -R "/Applications/DeepSeek Harness.app" dmg-stage/
 ln -s /Applications dmg-stage/Applications
 hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
-  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.5.dmg"
+  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.7.dmg"
 ```
 
 推送 `v*` 标签会触发 `.github/workflows/release.yml`，自动完成以上全部步骤，
@@ -218,7 +218,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe
 
 # 发布文件夹准备好后，使用 WiX 构建 MSI 安装包。
-.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.6
+.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.7
 ```
 
 Windows on ARM 请把 `x64` 改为 `arm64`。若已构建 runtime、只需要重新发布原生

@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-08-24
+
+### Fixed
+
+- Restored the bundled Node.js directory to the process `PATH` used during
+  macOS and Windows official Harness synchronization, so pnpm lifecycle
+  scripts do not fail on machines without a system Node.js installation.
+- Repaired missing user plugin profile fallbacks before the macOS and Windows
+  backend starts. A user-installed plugin can no longer make the official
+  `web` profile exit because its profile `node_modules` link was lost.
+- Hardened the Windows MSI build and validation flow for the complete official
+  runtime, including compressed cabinets, a short WiX staging path, and
+  normalized native-file language metadata.
+
 ## [0.5.6] - 2026-08-24
 
 ### Added

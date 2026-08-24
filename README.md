@@ -221,7 +221,7 @@ Create the installer image:
 mkdir -p dmg-stage && cp -R "/Applications/DeepSeek Harness.app" dmg-stage/
 ln -s /Applications dmg-stage/Applications
 hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
-  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.5.dmg"
+  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.7.dmg"
 ```
 
 A `v*` tag pushed to GitHub triggers `.github/workflows/release.yml`, which
@@ -248,7 +248,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe
 
 # After the published folder is ready, build a WiX MSI installer.
-.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.6
+.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.7
 ```
 
 For Windows on ARM, replace `x64` with `arm64`. To rebuild only the native

@@ -100,22 +100,53 @@ jobs:
         run: |
           $msi = Resolve-Path "windows\dist\DeepSeekHarnessGlass-win-x64-$env:GITHUB_REF_NAME.msi"
           $installRoot = Join-Path $env:RUNNER_TEMP "DeepSeek Harness Glass MSI"
-          Remove-Item -LiteralPath $installRoot -Recurse -Force -ErrorAction SilentlyContinue
-          $install = Start-Process -FilePath msiexec.exe -ArgumentList @(
-            "/i", $msi, "/qn", "/norestart", "INSTALLFOLDER=$installRoot"
-          ) -Wait -PassThru
-          if ($install.ExitCode -notin @(0, 3010)) {
-            throw "MSI install failed with exit code $($install.ExitCode)."
+          $installLog = Join-Path $env:RUNNER_TEMP "DeepSeekHarnessGlass-msi-install.log"
+          $uninstallLog = Join-Path $env:RUNNER_TEMP "DeepSeekHarnessGlass-msi-uninstall.log"
+
+          function Invoke-MsiSmoke {
+            param(
+              [Parameter(Mandatory = $true)][string[]]$Arguments,
+              [Parameter(Mandatory = $true)][string]$LogPath,
+              [Parameter(Mandatory = $true)][string]$Stage
+            )
+
+            Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
+            $process = Start-Process -FilePath msiexec.exe -ArgumentList $Arguments -PassThru
+            if (-not $process.WaitForExit(1500000)) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+              if (Test-Path $LogPath) {
+                Get-Content $LogPath -Tail 240
+              }
+              throw "MSI $Stage exceeded the 25-minute smoke-test limit. See the retained MSI log above."
+            }
+            if ($process.ExitCode -notin @(0, 3010)) {
+              if (Test-Path $LogPath) {
+                Get-Content $LogPath -Tail 240
+              }
+              throw "MSI $Stage failed with exit code $($process.ExitCode). See the retained MSI log above."
+            }
           }
+
+          Remove-Item -LiteralPath $installRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Invoke-MsiSmoke -Stage "install" -LogPath $installLog -Arguments @(
+            "/i", $msi, "/qn", "/norestart", "/L*V", $installLog, "INSTALLFOLDER=$installRoot"
+          )
           if (-not (Test-Path (Join-Path $installRoot "DeepSeekHarnessGlass.exe"))) {
             throw "MSI install did not place the Windows executable."
           }
-          $uninstall = Start-Process -FilePath msiexec.exe -ArgumentList @(
-            "/x", $msi, "/qn", "/norestart"
-          ) -Wait -PassThru
-          if ($uninstall.ExitCode -notin @(0, 3010)) {
-            throw "MSI uninstall failed with exit code $($uninstall.ExitCode)."
-          }
+          Invoke-MsiSmoke -Stage "uninstall" -LogPath $uninstallLog -Arguments @(
+            "/x", $msi, "/qn", "/norestart", "/L*V", $uninstallLog
+          )
+
+      - name: Upload MSI smoke logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi-smoke-logs
+          path: |
+            ${{ runner.temp }}/DeepSeekHarnessGlass-msi-install.log
+            ${{ runner.temp }}/DeepSeekHarnessGlass-msi-uninstall.log
+          if-no-files-found: warn
 
       - name: Create Windows ZIP
         shell: pwsh
