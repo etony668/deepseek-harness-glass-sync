@@ -80,6 +80,41 @@ jobs:
             }
           }
 
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 7.0.0
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          wix extension add -g WixToolset.UI.wixext/7.0.0
+
+      - name: Create and validate Windows MSI
+        shell: pwsh
+        run: |
+          .\windows\build-installer.ps1 -Architecture x64 -Version $env:GITHUB_REF_NAME
+          wix msi validate "windows\dist\DeepSeekHarnessGlass-win-x64-$env:GITHUB_REF_NAME.msi"
+
+      - name: Smoke test Windows MSI install and uninstall
+        shell: pwsh
+        run: |
+          $msi = Resolve-Path "windows\dist\DeepSeekHarnessGlass-win-x64-$env:GITHUB_REF_NAME.msi"
+          $installRoot = Join-Path $env:RUNNER_TEMP "DeepSeek Harness Glass MSI"
+          Remove-Item -LiteralPath $installRoot -Recurse -Force -ErrorAction SilentlyContinue
+          $install = Start-Process -FilePath msiexec.exe -ArgumentList @(
+            "/i", $msi, "/qn", "/norestart", "INSTALLFOLDER=$installRoot"
+          ) -Wait -PassThru
+          if ($install.ExitCode -notin @(0, 3010)) {
+            throw "MSI install failed with exit code $($install.ExitCode)."
+          }
+          if (-not (Test-Path (Join-Path $installRoot "DeepSeekHarnessGlass.exe"))) {
+            throw "MSI install did not place the Windows executable."
+          }
+          $uninstall = Start-Process -FilePath msiexec.exe -ArgumentList @(
+            "/x", $msi, "/qn", "/norestart"
+          ) -Wait -PassThru
+          if ($uninstall.ExitCode -notin @(0, 3010)) {
+            throw "MSI uninstall failed with exit code $($uninstall.ExitCode)."
+          }
+
       - name: Create Windows ZIP
         shell: pwsh
         run: |
@@ -92,6 +127,13 @@ jobs:
         with:
           name: windows-zip
           path: "DeepSeekHarnessGlass-win-x64-*.zip"
+          if-no-files-found: error
+
+      - name: Upload Windows MSI release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msi
+          path: "windows/dist/DeepSeekHarnessGlass-win-x64-*.msi"
           if-no-files-found: error
 
   release:

@@ -57,6 +57,11 @@ API。
 
 ### Windows
 
+如果希望正常安装，请从 **Releases** 下载
+`DeepSeekHarnessGlass-win-x64-<版本>.msi` 并运行。安装器会把完整应用安装到
+「Program Files」，并创建开始菜单快捷方式；卸载时不会删除 `~/.dsh` 中的用户数据。
+当前 MSI 为未签名的社区构建，Windows 可能显示 SmartScreen 或 UAC 提示。
+
 从 **Releases** 下载并解压 `DeepSeekHarnessGlass-win-x64-<版本>.zip`，保持整个
 解压后的文件夹完整，再启动 `DeepSeekHarnessGlass.exe`。该版本是未 MSIX 签名的
 便携式社区构建，Windows 可能显示 SmartScreen 提示。压缩包内也提供
@@ -191,8 +196,8 @@ hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
   -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.5.dmg"
 ```
 
-推送 `v*` 标签会触发 `.github/workflows/release.yml`，自动完成以上全部步骤
-并把 macOS DMG 与 Windows x64 ZIP 一起挂到 Release。
+推送 `v*` 标签会触发 `.github/workflows/release.yml`，自动完成以上全部步骤，
+并把 macOS DMG、Windows x64 ZIP 与 Windows x64 MSI 一起挂到 Release。
 
 ### Windows
 
@@ -211,6 +216,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\windows\package.ps1 -Architecture x64
 
 .\windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe
+
+# 发布文件夹准备好后，使用 WiX 构建 MSI 安装包。
+.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.6
 ```
 
 Windows on ARM 请把 `x64` 改为 `arm64`。若已构建 runtime、只需要重新发布原生
@@ -296,6 +304,8 @@ windows/
   HarnessBackend.cs       官方 runtime / 插件 / 同步控制器
   build-runtime.ps1       构建并冒烟测试官方 Windows runtime
   package.ps1             发布便携式 Windows App 文件夹
+  build-installer.ps1     构建 WiX MSI 安装包
+  installer/Product.wxs   MSI 安装包与开始菜单快捷方式定义
   runtime/                内置 pnpm wrapper 和同步脚本
 scripts/
   sync-upstream.sh       将官方 Harness submodule 前进到 origin/master

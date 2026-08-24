@@ -62,6 +62,13 @@ This is required once.
 
 ### Windows
 
+For a normal installation, download
+`DeepSeekHarnessGlass-win-x64-<version>.msi` from **Releases** and run it.
+The installer places the complete app under **Program Files** and adds a Start
+Menu shortcut. It does not remove `~/.dsh` data when uninstalled. The MSI is
+currently an unsigned community build, so Windows may show a SmartScreen or
+UAC prompt.
+
 Download and extract `DeepSeekHarnessGlass-win-x64-<version>.zip` from
 **Releases**, then keep the entire extracted folder together and launch
 `Launch-DeepSeekHarnessGlass.cmd` or `DeepSeekHarnessGlass.exe`. The launcher is
@@ -218,7 +225,8 @@ hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
 ```
 
 A `v*` tag pushed to GitHub triggers `.github/workflows/release.yml`, which
-builds the macOS DMG and the Windows x64 ZIP, then attaches both to a Release.
+builds the macOS DMG, Windows x64 ZIP, and Windows x64 MSI, then attaches all
+three assets to a Release.
 
 ### Windows
 
@@ -238,6 +246,9 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\windows\package.ps1 -Architecture x64
 
 .\windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe
+
+# After the published folder is ready, build a WiX MSI installer.
+.\windows\build-installer.ps1 -Architecture x64 -Version 0.5.6
 ```
 
 For Windows on ARM, replace `x64` with `arm64`. To rebuild only the native
@@ -330,6 +341,8 @@ windows/
   HarnessBackend.cs       official runtime / plugin / sync controller
   build-runtime.ps1       build and smoke-test the official Windows runtime
   package.ps1             publish the portable Windows app folder
+  build-installer.ps1     build the WiX MSI installer
+  installer/Product.wxs   MSI package and Start Menu shortcut definition
   runtime/                bundled pnpm wrapper and sync script
 scripts/
   sync-upstream.sh       advance official Harness submodule to origin/master

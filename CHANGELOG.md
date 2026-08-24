@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.6] - 2026-08-24
+
+### Added
+
+- WiX-based Windows MSI installer built on GitHub Actions. The installer
+  places the complete self-contained Windows app under Program Files, adds a
+  Start Menu shortcut, supports major-version upgrades, and leaves the user's
+  `%LOCALAPPDATA%` / `~/.dsh` data untouched on uninstall.
+
 ## [0.5.5] - 2026-08-24
 
 ### Fixed

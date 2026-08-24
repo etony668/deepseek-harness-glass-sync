@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Package
+      Name="DeepSeek Harness Glass"
+      Manufacturer="etony668"
+      Version="$(var.ProductVersion)"
+      UpgradeCode="{4B58B12B-5A7A-4DD1-9A3D-0B8D5A8A1F72}"
+      Scope="perMachine">
+
+    <SummaryInformation Description="DeepSeek Harness Glass Windows desktop application" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of DeepSeek Harness Glass is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+
+    <Feature Id="MainFeature" Title="DeepSeek Harness Glass" Level="1">
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="DeepSeek Harness Glass" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="DeepSeek Harness Glass" />
+    </StandardDirectory>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
+      <Files Include="!(bindpath.PublishDir)\**">
+        <Exclude Files="**\DeepSeekHarnessGlass.exe" />
+      </Files>
+    </ComponentGroup>
+
+    <Component Id="MainExecutable" Directory="INSTALLFOLDER">
+      <File Id="MainExe"
+            Source="!(bindpath.PublishDir)\DeepSeekHarnessGlass.exe"
+            KeyPath="yes" />
+    </Component>
+
+    <Component Id="ApplicationShortcut" Directory="ApplicationProgramsFolder">
+      <Shortcut
+          Id="StartMenuShortcut"
+          Name="DeepSeek Harness Glass"
+          Description="Open DeepSeek Harness Glass"
+          Target="[#MainExe]"
+          WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue
+          Root="HKLM"
+          Key="Software\DeepSeek Harness Glass"
+          Name="installed"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>
