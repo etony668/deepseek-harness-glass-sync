@@ -103,6 +103,7 @@ public sealed class HarnessBackend
         }
 
         Directory.CreateDirectory(DshHome);
+        RepairUserPluginFallbacks();
         Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
 
         var ready = new TaskCompletionSource<Uri>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -198,6 +199,7 @@ public sealed class HarnessBackend
         if (string.IsNullOrWhiteSpace(packageSpec) || packageSpec.Any(char.IsWhiteSpace))
             throw new ArgumentException("A plugin package spec must be a single non-empty value.", nameof(packageSpec));
 
+        RepairUserPluginFallbacks();
         var backend = PluginBackendPath();
         if (!File.Exists(NodePath) || !File.Exists(backend))
             throw new InvalidOperationException(
@@ -326,6 +328,143 @@ public sealed class HarnessBackend
         return RuntimeIsComplete(target)
             ? Path.Combine(target, "lib", "bin.js")
             : null;
+    }
+
+    /// <summary>
+    /// Keep user-installed plugin packages resolvable from the web profile
+    /// after the immutable official runtime changes. The plugin source remains
+    /// under DSH_HOME; only a profile fallback junction is repaired. This
+    /// mirrors the macOS shell behavior without copying plugin source into the
+    /// repository or mutating the official runtime.
+    /// </summary>
+    private void RepairUserPluginFallbacks()
+    {
+        var pluginsRoot = Path.Combine(DshHome, "plugins");
+        if (!Directory.Exists(pluginsRoot)) return;
+
+        var profileModules = Path.Combine(DshHome, "profiles", "node_modules");
+        foreach (var pluginDirectory in Directory.EnumerateDirectories(pluginsRoot))
+        {
+            var manifestPath = Path.Combine(pluginDirectory, "package.json");
+            if (!File.Exists(manifestPath)) continue;
+
+            string? packageName;
+            try
+            {
+                using var document = JsonDocument.Parse(File.ReadAllText(manifestPath));
+                packageName = document.RootElement.TryGetProperty("name", out var name)
+                    ? name.GetString()
+                    : null;
+            }
+            catch (Exception error)
+            {
+                AppendLog($"[plugin] could not read {manifestPath}: {error.Message}");
+                continue;
+            }
+
+            if (!TryGetPackagePath(profileModules, packageName, out var fallback))
+                continue;
+
+            if (File.Exists(Path.Combine(fallback, "package.json"))) continue;
+
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(fallback)!);
+                RemovePluginFallback(fallback);
+                if (TryCreateDirectoryJunction(fallback, pluginDirectory))
+                {
+                    AppendLog($"[plugin] repaired profile fallback {packageName}");
+                }
+                else
+                {
+                    AppendLog($"[plugin] could not repair profile fallback {packageName}");
+                }
+            }
+            catch (Exception error)
+            {
+                AppendLog($"[plugin] could not repair {packageName}: {error.Message}");
+            }
+        }
+    }
+
+    private static bool TryGetPackagePath(
+        string profileModules,
+        string? packageName,
+        out string fallback)
+    {
+        fallback = string.Empty;
+        if (string.IsNullOrWhiteSpace(packageName)) return false;
+
+        var components = packageName.Split('/');
+        if (components.Length == 0
+            || components.Any(component =>
+                string.IsNullOrWhiteSpace(component)
+                || component is "." or ".."
+                || component.Contains('\\')))
+        {
+            return false;
+        }
+
+        fallback = components.Aggregate(
+            profileModules,
+            (current, component) => Path.Combine(current, component));
+        var root = Path.GetFullPath(profileModules)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        return Path.GetFullPath(fallback).StartsWith(root, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void RemovePluginFallback(string path)
+    {
+        if (!File.Exists(path) && !Directory.Exists(path))
+        {
+            try
+            {
+                var attributes = File.GetAttributes(path);
+                if (!attributes.HasFlag(FileAttributes.ReparsePoint)) return;
+            }
+            catch
+            {
+                return;
+            }
+        }
+
+        var currentAttributes = File.GetAttributes(path);
+        if (currentAttributes.HasFlag(FileAttributes.ReparsePoint))
+        {
+            Directory.Delete(path);
+        }
+        else if (Directory.Exists(path))
+        {
+            Directory.Delete(path, recursive: true);
+        }
+        else if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static bool TryCreateDirectoryJunction(string link, string target)
+    {
+        var cmd = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = cmd,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        startInfo.ArgumentList.Add("/d");
+        startInfo.ArgumentList.Add("/c");
+        startInfo.ArgumentList.Add("mklink");
+        startInfo.ArgumentList.Add("/J");
+        startInfo.ArgumentList.Add(link);
+        startInfo.ArgumentList.Add(target);
+
+        using var process = Process.Start(startInfo);
+        if (process is null) return false;
+        process.WaitForExit(5000);
+        return process.ExitCode == 0
+            && File.Exists(Path.Combine(link, "package.json"));
     }
 
     private bool RuntimeIsComplete(string root)
