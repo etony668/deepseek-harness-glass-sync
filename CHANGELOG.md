@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.10] - 2026-08-24
+
+### Fixed
+
+- Switched the Windows MSI to WiX's dual-scope authoring while explicitly
+  selecting the current-user path in CI. This keeps the default
+  `%LOCALAPPDATA%\Programs` installation free of elevation prompts while
+  satisfying the Windows Installer component rules for the full bundled
+  runtime.
+- Added the same bounded install, installed-app launch, uninstall, and
+  user-`DSH_HOME` preservation verification to the regular Windows build
+  workflow, including retained MSI logs on failure.
+
 ## [0.5.9] - 2026-08-24
 
 ### Fixed

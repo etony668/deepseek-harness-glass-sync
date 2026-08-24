@@ -136,7 +136,8 @@ jobs:
 
           try {
             Invoke-MsiSmoke -Stage "install" -LogPath $installLog -Arguments @(
-              "/i", $msi, "/qn", "/norestart", "/L*V", $installLog, "INSTALLFOLDER=$installRoot"
+              "/i", $msi, "/qn", "/norestart", "/L*V", $installLog,
+              "ALLUSERS=2", "MSIINSTALLPERUSER=1", "INSTALLFOLDER=$installRoot"
             )
 
             $installedApp = Join-Path $installRoot "DeepSeekHarnessGlass.exe"
