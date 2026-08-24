@@ -32,7 +32,7 @@
   <Fragment>
     <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
       <Files Include="!(bindpath.PublishDir)\**">
-        <Exclude Files="**\DeepSeekHarnessGlass.exe" />
+        <Exclude Files="!(bindpath.PublishDir)\DeepSeekHarnessGlass.exe" />
       </Files>
     </ComponentGroup>
 
