@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-08-24
+
+### Fixed
+
+- Restored execution of the macOS Glass WebView theme and branding overrides
+  after removing a backtick that broke the injected JavaScript template.
+
+### Changed
+
+- Replaced the single homepage screenshot in both bilingual READMEs with
+  separate light-mode and dark-mode previews.
+
 ### Added
 
 - Native Windows host built with WinUI 3 and WebView2. The outer window uses

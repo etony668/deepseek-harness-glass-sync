@@ -214,7 +214,7 @@ Create the installer image:
 mkdir -p dmg-stage && cp -R "/Applications/DeepSeek Harness.app" dmg-stage/
 ln -s /Applications dmg-stage/Applications
 hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
-  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.6.0.dmg"
+  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.5.dmg"
 ```
 
 A `v*` tag pushed to GitHub triggers `.github/workflows/release.yml`, which

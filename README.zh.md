@@ -188,7 +188,7 @@ APP_PATH="$PWD/dist/DeepSeek Harness.app" ./assemble.sh
 mkdir -p dmg-stage && cp -R "/Applications/DeepSeek Harness.app" dmg-stage/
 ln -s /Applications dmg-stage/Applications
 hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
-  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.6.0.dmg"
+  -ov -format UDZO "dist/DeepSeek Harness Glass Sync-0.5.5.dmg"
 ```
 
 推送 `v*` 标签会触发 `.github/workflows/release.yml`，自动完成以上全部步骤
