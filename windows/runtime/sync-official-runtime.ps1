@@ -17,6 +17,9 @@ $node = Join-Path $resources 'node\node.exe'
 $pnpm = Join-Path $resources 'pnpm\node_modules\pnpm\bin\pnpm.mjs'
 $materializer = Join-Path $resources 'bin\materialize-runtime.mjs'
 $commitPattern = '^[0-9a-f]{40}$'
+# pnpm lifecycle scripts invoke `node` by name. Expose the bundled Node and
+# wrapper directories so sync does not depend on a system Node installation.
+$env:PATH = "$(Join-Path $resources 'bin');$(Join-Path $resources 'node');$env:PATH"
 
 function Emit-Progress {
     param(

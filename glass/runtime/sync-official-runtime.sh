@@ -16,6 +16,11 @@ RESOURCES="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 NODE="$RESOURCES/node/node"
 PNPM="$RESOURCES/pnpm/node_modules/pnpm/bin/pnpm.mjs"
 MATERIALIZER="$RESOURCES/bin/materialize-runtime.mjs"
+# pnpm runs package lifecycle scripts in child shells. Those scripts invoke
+# `node` by name, so expose the bundled Node directory as well as the pnpm
+# wrapper directory; relying on the user's system PATH makes App sync fail on
+# machines without a globally installed Node.js.
+export PATH="$RESOURCES/bin:$RESOURCES/node:${PATH:-/usr/bin:/bin}"
 # 直连 GitHub 官方源码分发端点，避免 github.com/archive 的重定向链；
 # 此 URL 与官方仓库的 commit 一一对应。
 UPSTREAM_TARBALL="https://codeload.github.com/deepseek-ai/deepseek-harness/tar.gz/${COMMIT}"

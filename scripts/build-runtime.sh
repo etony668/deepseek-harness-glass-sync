@@ -55,7 +55,10 @@ run_pnpm() {
 # the fixed bundled wrapper discoverable to those child processes before the
 # first upstream command runs.
 "$ROOT/glass/runtime/make-pnpm-wrapper.sh"
-export PATH="$BUILD/bin:$PATH"
+# Nested official lifecycle scripts invoke both `pnpm` and `node` by name.
+# Keep local/release builds independent of whatever runtimes happen to be
+# installed on the build host.
+export PATH="$BUILD/bin:$BUILD/node:$PATH"
 
 if [ ! -f "$HARNESS/pnpm-lock.yaml" ]; then
   echo "missing upstream lockfile: $HARNESS/pnpm-lock.yaml" >&2

@@ -291,6 +291,14 @@ final class BackendController: NSObject, ObservableObject {
         resourcesURL.appendingPathComponent("bin").path
     }
 
+    private var bundledNodePath: String {
+        resourcesURL.appendingPathComponent("node").path
+    }
+
+    private var bundledToolPath: String {
+        bundledBinPath + ":" + bundledNodePath
+    }
+
     private var bundledRuntimeCommit: String {
         guard let value = try? String(
             contentsOf: resourcesURL.appendingPathComponent("bundled-runtime-commit"),
@@ -503,7 +511,7 @@ final class BackendController: NSObject, ObservableObject {
         proc.arguments = ["--expose-internals", bin.path, "web", "--no-open", "--port", "0"]
         var env = ProcessInfo.processInfo.environment
         env["DSH_HOME"] = homePath
-        env["PATH"] = bundledBinPath + ":" + (env["PATH"] ?? "")
+        env["PATH"] = bundledToolPath + ":" + (env["PATH"] ?? "")
         proc.environment = env
 
         let pipe = Pipe()
@@ -585,7 +593,7 @@ final class BackendController: NSObject, ObservableObject {
         proc.arguments = ["--expose-internals", bin.path, "plugin", "--profile", "web"] + arguments
         var env = ProcessInfo.processInfo.environment
         env["DSH_HOME"] = homePath
-        env["PATH"] = bundledBinPath + ":" + (env["PATH"] ?? "")
+        env["PATH"] = bundledToolPath + ":" + (env["PATH"] ?? "")
         proc.environment = env
 
         let pipe = Pipe()
@@ -735,7 +743,7 @@ final class BackendController: NSObject, ObservableObject {
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = [script.path, runtimeRootURL.path, commit]
         var environment = ProcessInfo.processInfo.environment
-        environment["PATH"] = bundledBinPath + ":" + (environment["PATH"] ?? "")
+        environment["PATH"] = bundledToolPath + ":" + (environment["PATH"] ?? "")
         process.environment = environment
         let pipe = Pipe()
         let output = ProcessOutputBuffer()

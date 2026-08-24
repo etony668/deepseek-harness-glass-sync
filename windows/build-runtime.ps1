@@ -67,7 +67,8 @@ if ($installedPnpmVersion -ne $pnpmVersion) {
 # Put the bundled command wrapper on PATH before that build begins; invoking
 # pnpm through an absolute Node path alone is insufficient on Windows.
 & (Join-Path $PSScriptRoot 'runtime\make-pnpm-wrapper.ps1') -OutputDirectory $bin
-$env:PATH = "$bin;$env:PATH"
+# Nested official lifecycle scripts invoke both `pnpm` and `node` by name.
+$env:PATH = "$bin;$nodeDirectory;$env:PATH"
 
 function Invoke-Pnpm {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
