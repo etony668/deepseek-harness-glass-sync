@@ -10,7 +10,10 @@
 
     <SummaryInformation Description="DeepSeek Harness Glass Windows desktop application" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of DeepSeek Harness Glass is already installed." />
-    <MediaTemplate EmbedCab="yes" />
+    <!-- The complete offline Harness runtime contains a large dependency
+         closure. Store it uncompressed to keep WiX's cabinet helper stable
+         on hosted Windows CI while preserving a single self-contained MSI. -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="none" />
 
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
