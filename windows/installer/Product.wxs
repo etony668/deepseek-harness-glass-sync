@@ -28,7 +28,7 @@
       <Directory Id="INSTALLFOLDER" Name="DeepSeek Harness Glass" />
     </StandardDirectory>
 
-    <StandardDirectory Id="CommonProgramsFolder">
+    <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="ApplicationProgramsFolder" Name="DeepSeek Harness Glass" />
     </StandardDirectory>
   </Package>
@@ -55,7 +55,7 @@
           WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
       <RegistryValue
-          Root="HKLM"
+          Root="HKCU"
           Key="Software\DeepSeek Harness Glass"
           Name="installed"
           Type="integer"
