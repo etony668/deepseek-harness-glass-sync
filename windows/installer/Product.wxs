@@ -80,8 +80,8 @@
         Return="check" />
 
     <InstallExecuteSequence>
-      <Custom Action="ExtractApplicationPayload" After="InstallFiles">NOT Installed</Custom>
-      <Custom Action="RemoveExtractedApplication" Before="RemoveFiles">REMOVE="ALL"</Custom>
+      <Custom Action="ExtractApplicationPayload" After="InstallFiles" Condition="NOT Installed" />
+      <Custom Action="RemoveExtractedApplication" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot;" />
     </InstallExecuteSequence>
   </Fragment>
 </Wix>
