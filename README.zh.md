@@ -55,7 +55,12 @@ API。
 
 从 **Releases** 下载并解压 `DeepSeekHarnessGlass-win-x64-<版本>.zip`，保持整个
 解压后的文件夹完整，再启动 `DeepSeekHarnessGlass.exe`。该版本是未 MSIX 签名的
-便携式社区构建，Windows 可能显示 SmartScreen 提示。
+便携式社区构建，Windows 可能显示 SmartScreen 提示。压缩包内也提供
+`Launch-DeepSeekHarnessGlass.cmd`，可用它启动，避免误把 exe 单独移出文件夹。
+
+压缩包已随附原生 Visual C++ runtime。Windows 仍需安装 Microsoft Edge
+WebView2 Evergreen Runtime；如果首次启动提示缺少 WebView2，安装一次后重新打开
+应用即可。
 
 首次运行后在应用内的「设置」中填入你自己的 DeepSeek API Key。应用数据存放于
 `~/.dsh`——与 dsh 命令行版共用同一目录，已有的会话、profile 和

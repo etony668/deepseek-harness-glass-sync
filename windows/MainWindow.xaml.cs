@@ -80,6 +80,24 @@ public sealed partial class MainWindow : Window
     {
         if (!_webViewInitialized)
         {
+            string? webViewVersion;
+            try
+            {
+                webViewVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            }
+            catch (Exception error)
+            {
+                throw new InvalidOperationException(
+                    "Microsoft Edge WebView2 Runtime is not installed. "
+                    + "Install the Evergreen WebView2 Runtime, then launch DeepSeek Harness Glass again.",
+                    error);
+            }
+            if (string.IsNullOrWhiteSpace(webViewVersion))
+            {
+                throw new InvalidOperationException(
+                    "Microsoft Edge WebView2 Runtime is not installed. "
+                    + "Install the Evergreen WebView2 Runtime, then launch DeepSeek Harness Glass again.");
+            }
             await HarnessWebView.EnsureCoreWebView2Async();
             HarnessWebView.CoreWebView2.NewWindowRequested += OpenExternalWindow;
             HarnessWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;

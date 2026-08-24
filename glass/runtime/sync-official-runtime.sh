@@ -56,6 +56,14 @@ PARTIAL_ARCHIVE="$ARCHIVE.part"
 SYNC_LOG="$RUNTIME_ROOT/latest-sync.log"
 LAST_FRACTION="0"
 
+runtime_complete() {
+  test -f "$1/lib/bin.js" \
+    && test -f "$1/package.json" \
+    && test -f "$1/node_modules/@deepseek-ai/dsh-app-boot/package.json" \
+    && test -f "$1/node_modules/@deepseek-ai/dsh-base/package.json" \
+    && test -f "$1/node_modules/@deepseek-ai/dsh-web-app/package.json"
+}
+
 emit() {
   # $1 phase, $2 fraction, $3 title, $4 detail
   LAST_FRACTION="$2"
@@ -72,7 +80,13 @@ fail() {
 mkdir -p "$RUNTIME_ROOT"
 : > "$SYNC_LOG"
 
-if [ -f "$TARGET/backend/lib/bin.js" ]; then
+if [ -e "$TARGET" ] && ! runtime_complete "$TARGET"; then
+  BROKEN_TARGET="$TARGET.broken-$(date +%Y%m%d-%H%M%S)-$$"
+  mv -f "$TARGET" "$BROKEN_TARGET"
+  printf 'invalid cached runtime moved to %s\n' "$BROKEN_TARGET" >> "$SYNC_LOG"
+fi
+
+if runtime_complete "$TARGET"; then
   emit "activate" "0.96" "正在激活已缓存的官方版本" "$COMMIT"
   LINK="$RUNTIME_ROOT/.current-$COMMIT-$$"
   ln -s "versions/$COMMIT" "$LINK"
@@ -163,7 +177,7 @@ if ! (
   fail "deploy" "官方运行时打包失败；已保留诊断日志。"
 fi
 
-test -f "$STAGE/backend/lib/bin.js" || {
+runtime_complete "$STAGE/backend" || {
   fail "deploy" "官方 dsh 入口缺失，无法启用该版本。"
 }
 
@@ -172,7 +186,7 @@ if ! "$NODE" "$MATERIALIZER" "$STAGE/source" "$STAGE/backend" >> "$SYNC_LOG" 2>&
   fail "materialize" "运行时依赖整理失败；已保留诊断日志。"
 fi
 
-test -f "$STAGE/backend/lib/bin.js" || {
+runtime_complete "$STAGE/backend" || {
   fail "materialize" "整理后缺少官方 dsh 入口，无法启用该版本。"
 }
 

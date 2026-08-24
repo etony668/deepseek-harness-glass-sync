@@ -62,6 +62,15 @@ public sealed class HarnessBackend
     private string BundledBackendPath => Path.Combine(ResourceRoot, "backend", "lib", "bin.js");
     private string SyncScriptPath => Path.Combine(ResourceRoot, "bin", "sync-official-runtime.ps1");
     private string BundledBinPath => Path.Combine(ResourceRoot, "bin");
+    private string PluginRuntimeRoot => Path.Combine(RuntimeRoot, "plugin-runtime");
+    private static readonly string[] RequiredRuntimeFiles =
+    [
+        Path.Combine("lib", "bin.js"),
+        "package.json",
+        Path.Combine("node_modules", "@deepseek-ai", "dsh-app-boot", "package.json"),
+        Path.Combine("node_modules", "@deepseek-ai", "dsh-base", "package.json"),
+        Path.Combine("node_modules", "@deepseek-ai", "dsh-web-app", "package.json"),
+    ];
 
     public async Task<Uri> StartAsync(CancellationToken cancellationToken = default)
     {
@@ -80,6 +89,7 @@ public sealed class HarnessBackend
 
         OwnsBackend = true;
         var node = NodePath;
+        _ = EnsureActiveRuntimeDirectory();
         var backend = ActiveBackendPath();
         if (!File.Exists(node))
         {
@@ -188,9 +198,10 @@ public sealed class HarnessBackend
         if (string.IsNullOrWhiteSpace(packageSpec) || packageSpec.Any(char.IsWhiteSpace))
             throw new ArgumentException("A plugin package spec must be a single non-empty value.", nameof(packageSpec));
 
-        var backend = ActiveBackendPath();
+        var backend = PluginBackendPath();
         if (!File.Exists(NodePath) || !File.Exists(backend))
-            throw new InvalidOperationException("The bundled official Harness runtime is incomplete.");
+            throw new InvalidOperationException(
+                "The isolated plugin runtime is incomplete and could not be rebuilt from a healthy official runtime.");
 
         var result = await RunProcessAsync(
             CreateNodeStartInfo(
@@ -198,7 +209,14 @@ public sealed class HarnessBackend
                 ["plugin", "--profile", "web", command, packageSpec],
                 redirectOutput: true),
             cancellationToken);
-        return new PluginCommandResult(result.ExitCode == 0, result.Output);
+        var healthy = EnsureActiveRuntimeDirectory() is not null;
+        return new PluginCommandResult(
+            result.ExitCode == 0 && healthy,
+            result.ExitCode == 0 && healthy
+                ? result.Output
+                : result.ExitCode == 0
+                    ? "Plugin operation completed, but the active official runtime failed integrity checks and was rolled back."
+                    : result.Output);
     }
 
     public async Task<SyncResult> SyncOfficialRuntimeAsync(CancellationToken cancellationToken = default)
@@ -288,13 +306,87 @@ public sealed class HarnessBackend
 
     private string ActiveBackendPath()
     {
-        var current = CurrentRuntimeCommit();
-        if (current is not null)
-        {
-            var updated = Path.Combine(RuntimeRoot, "versions", current, "lib", "bin.js");
-            if (File.Exists(updated)) return updated;
-        }
+        var active = EnsureActiveRuntimeDirectory();
+        if (active is not null) return Path.Combine(active, "lib", "bin.js");
         return BundledBackendPath;
+    }
+
+    private string? PluginBackendPath()
+    {
+        var source = EnsureActiveRuntimeDirectory();
+        if (source is null) return null;
+        var commit = CurrentRuntimeCommit() ?? BundledRuntimeCommit();
+        var target = Path.Combine(PluginRuntimeRoot, commit);
+        if (!RuntimeIsComplete(target))
+        {
+            Directory.CreateDirectory(PluginRuntimeRoot);
+            if (Directory.Exists(target)) Directory.Delete(target, recursive: true);
+            CopyDirectory(source, target);
+        }
+        return RuntimeIsComplete(target)
+            ? Path.Combine(target, "lib", "bin.js")
+            : null;
+    }
+
+    private bool RuntimeIsComplete(string root)
+    {
+        return RequiredRuntimeFiles.All(relative =>
+            File.Exists(Path.Combine(root, relative)));
+    }
+
+    /// <summary>
+    /// Treat versioned runtimes as immutable. A damaged current pointer is
+    /// preserved, then the newest complete version is activated automatically.
+    /// </summary>
+    private string? EnsureActiveRuntimeDirectory()
+    {
+        Directory.CreateDirectory(RuntimeRoot);
+        var currentPointer = Path.Combine(RuntimeRoot, "current.txt");
+        var currentCommit = File.Exists(currentPointer)
+            ? File.ReadAllText(currentPointer).Trim().ToLowerInvariant()
+            : null;
+        var current = currentCommit is not null && CommitPattern.IsMatch(currentCommit)
+            ? Path.Combine(RuntimeRoot, "versions", currentCommit)
+            : null;
+        if (current is not null && RuntimeIsComplete(current)) return current;
+
+        if (File.Exists(currentPointer))
+        {
+            var broken = Path.Combine(
+                RuntimeRoot,
+                $"current.broken-{DateTimeOffset.Now:yyyyMMdd-HHmmssfff}");
+            try
+            {
+                File.Move(currentPointer, broken, overwrite: true);
+                AppendLog($"[runtime] current runtime failed integrity check; preserved at {broken}");
+            }
+            catch (Exception error)
+            {
+                AppendLog($"[runtime] could not preserve broken current pointer: {error.Message}");
+            }
+        }
+
+        var versions = Path.Combine(RuntimeRoot, "versions");
+        var candidate = Directory.Exists(versions)
+            ? Directory.EnumerateDirectories(versions)
+                .Where(RuntimeIsComplete)
+                .OrderByDescending(Directory.GetLastWriteTimeUtc)
+                .FirstOrDefault()
+            : null;
+        if (candidate is not null)
+        {
+            WriteCurrentPointer(Path.GetFileName(candidate));
+            AppendLog($"[runtime] automatically rolled back to {Path.GetFileName(candidate)}");
+            return candidate;
+        }
+
+        var bundled = Path.Combine(ResourceRoot, "backend");
+        if (RuntimeIsComplete(bundled))
+        {
+            AppendLog("[runtime] using bundled runtime fallback");
+            return bundled;
+        }
+        return null;
     }
 
     private string? CurrentRuntimeCommit()
@@ -306,6 +398,37 @@ public sealed class HarnessBackend
             && Directory.Exists(Path.Combine(RuntimeRoot, "versions", commit))
             ? commit
             : null;
+    }
+
+    private string BundledRuntimeCommit()
+    {
+        var path = Path.Combine(ResourceRoot, "bundled-runtime-commit");
+        return File.Exists(path) ? File.ReadAllText(path).Trim() : "bundled";
+    }
+
+    private void WriteCurrentPointer(string value)
+    {
+        var pointer = Path.Combine(RuntimeRoot, "current.txt");
+        var temporary = Path.Combine(RuntimeRoot, $".current-{Guid.NewGuid():N}.tmp");
+        File.WriteAllText(temporary, value, Encoding.ASCII);
+        File.Move(temporary, pointer, overwrite: true);
+    }
+
+    private static void CopyDirectory(string source, string destination)
+    {
+        Directory.CreateDirectory(destination);
+        foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(source, directory);
+            Directory.CreateDirectory(Path.Combine(destination, relative));
+        }
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(source, file);
+            var target = Path.Combine(destination, relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target, overwrite: true);
+        }
     }
 
     private ProcessStartInfo CreateNodeStartInfo(

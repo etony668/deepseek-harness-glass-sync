@@ -60,8 +60,14 @@ This is required once.
 
 Download and extract `DeepSeekHarnessGlass-win-x64-<version>.zip` from
 **Releases**, then keep the entire extracted folder together and launch
-`DeepSeekHarnessGlass.exe`. The app is unpackaged rather than MSIX-signed, so
-Windows may show a SmartScreen prompt for an unsigned community build.
+`Launch-DeepSeekHarnessGlass.cmd` or `DeepSeekHarnessGlass.exe`. The launcher is
+included to make it clear that the whole folder is required. The app is
+unpackaged rather than MSIX-signed, so Windows may show a SmartScreen prompt for
+an unsigned community build.
+
+The package carries the native Visual C++ runtime beside the app. Windows still
+needs the Microsoft Edge WebView2 Evergreen Runtime; if the first launch reports
+that WebView2 is missing, install that runtime once and launch the app again.
 
 On first run, open **Settings** in the app and enter your own DeepSeek API
 key. The app stores its data in `~/.dsh`, the same home directory the dsh CLI

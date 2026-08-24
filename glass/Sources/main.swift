@@ -232,17 +232,23 @@ final class BackendController: NSObject, ObservableObject {
             .appendingPathComponent("runtime", isDirectory: true)
     }
 
+    private var pluginRuntimeRootURL: URL {
+        runtimeRootURL.appendingPathComponent("plugin-runtime", isDirectory: true)
+    }
+
+    private let requiredRuntimeFiles = [
+        "lib/bin.js",
+        "package.json",
+        "node_modules/@deepseek-ai/dsh-app-boot/package.json",
+        "node_modules/@deepseek-ai/dsh-base/package.json",
+        "node_modules/@deepseek-ai/dsh-web-app/package.json",
+    ]
+
     private var activeBackendURL: URL {
-        let current = runtimeRootURL
-            .appendingPathComponent("current", isDirectory: true)
-            .appendingPathComponent("lib", isDirectory: true)
+        let runtime = ensureActiveRuntimeDirectory()
+            ?? resourcesURL.appendingPathComponent("backend", isDirectory: true)
+        return runtime.appendingPathComponent("lib", isDirectory: true)
             .appendingPathComponent("bin.js")
-        return FileManager.default.fileExists(atPath: current.path)
-            ? current
-            : resourcesURL
-                .appendingPathComponent("backend", isDirectory: true)
-                .appendingPathComponent("lib", isDirectory: true)
-                .appendingPathComponent("bin.js")
     }
 
     private var nodeURL: URL {
@@ -267,6 +273,105 @@ final class BackendController: NSObject, ObservableObject {
 
     var officialRuntimeSyncLogPath: String {
         runtimeRootURL.appendingPathComponent("latest-sync.log").path
+    }
+
+    private func runtimeIsComplete(_ root: URL) -> Bool {
+        let fileManager = FileManager.default
+        return requiredRuntimeFiles.allSatisfy {
+            fileManager.fileExists(atPath: root.appendingPathComponent($0).path)
+        }
+    }
+
+    /// The active version directory is treated as immutable. If a plugin
+    /// manager or a partial update damaged it, preserve that directory and
+    /// atomically repoint `current` to the newest complete version instead.
+    @discardableResult
+    private func ensureActiveRuntimeDirectory() -> URL? {
+        let fileManager = FileManager.default
+        let current = runtimeRootURL.appendingPathComponent("current", isDirectory: true)
+        if runtimeIsComplete(current) {
+            return current
+        }
+
+        if fileManager.fileExists(atPath: current.path) {
+            let stamp = ISO8601DateFormatter().string(from: Date())
+                .replacingOccurrences(of: ":", with: "")
+                .replacingOccurrences(of: "-", with: "")
+            let broken = runtimeRootURL.appendingPathComponent("current.broken-\(stamp)")
+            try? fileManager.moveItem(at: current, to: broken)
+            appendLog("[runtime] current runtime failed integrity check; preserved at \(broken.path)\n")
+        }
+
+        let versions = runtimeRootURL.appendingPathComponent("versions", isDirectory: true)
+        let candidates = (try? fileManager.contentsOfDirectory(
+            at: versions,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ))?
+            .filter { runtimeIsComplete($0) }
+            .sorted {
+                let left = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+                    ?? .distantPast
+                let right = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+                    ?? .distantPast
+                return left > right
+            } ?? []
+
+        if let candidate = candidates.first {
+            try? fileManager.createDirectory(at: runtimeRootURL, withIntermediateDirectories: true)
+            let temporary = runtimeRootURL.appendingPathComponent(".current-recovery-\(UUID().uuidString)")
+            let destination = "versions/\(candidate.lastPathComponent)"
+            do {
+                try fileManager.createSymbolicLink(
+                    atPath: temporary.path,
+                    withDestinationPath: destination
+                )
+                try? fileManager.removeItem(at: current)
+                try fileManager.moveItem(at: temporary, to: current)
+                appendLog("[runtime] automatically rolled back to \(candidate.lastPathComponent)\n")
+                return current
+            } catch {
+                try? fileManager.removeItem(at: temporary)
+                appendLog("[runtime] failed to repoint current runtime: \(error.localizedDescription)\n")
+            }
+        }
+
+        let bundled = resourcesURL.appendingPathComponent("backend", isDirectory: true)
+        if runtimeIsComplete(bundled) {
+            appendLog("[runtime] using bundled runtime fallback\n")
+            return bundled
+        }
+        return nil
+    }
+
+    /// Plugin installation must never run pnpm against the immutable runtime.
+    /// A writable, per-commit copy is used only for the official `dsh plugin`
+    /// command; the normal web backend continues to load the immutable version.
+    private func pluginBackendURL() -> URL? {
+        guard let source = ensureActiveRuntimeDirectory() else { return nil }
+        let commit = currentRuntimeCommit() ?? bundledRuntimeCommit
+        let target = pluginRuntimeRootURL
+            .appendingPathComponent(commit, isDirectory: true)
+        let fileManager = FileManager.default
+        if !runtimeIsComplete(target) {
+            do {
+                try fileManager.createDirectory(
+                    at: pluginRuntimeRootURL,
+                    withIntermediateDirectories: true
+                )
+                try? fileManager.removeItem(at: target)
+                try fileManager.copyItem(
+                    at: URL(fileURLWithPath: source.path).resolvingSymlinksInPath(),
+                    to: target
+                )
+            } catch {
+                appendLog("[plugin] unable to prepare isolated runtime: \(error.localizedDescription)\n")
+                return nil
+            }
+        }
+        return runtimeIsComplete(target)
+            ? target.appendingPathComponent("lib", isDirectory: true).appendingPathComponent("bin.js")
+            : nil
     }
 
     override init() {
@@ -314,6 +419,10 @@ final class BackendController: NSObject, ObservableObject {
                 self.url = URL(string: "http://127.0.0.1:3080/")
                 self.appendLog("[backend] 检测到 127.0.0.1:3080 已有 dsh 实例，直接挂接\n")
             } else {
+                guard self.ensureActiveRuntimeDirectory() != nil else {
+                    self.errorText = "官方 Harness runtime 不完整，且没有可用回退版本。"
+                    return
+                }
                 self.spawnBackend()
             }
         }
@@ -433,7 +542,10 @@ final class BackendController: NSObject, ObservableObject {
     /// Bundle 解析完全由官方运行时负责，Swift 只提供触发入口。
     func runPluginCommand(_ arguments: [String], completion: @escaping (Bool, String) -> Void) {
         let node = nodeURL
-        let bin = dshBinURL
+        guard let bin = pluginBackendURL() else {
+            completion(false, "无法准备插件专用运行时；当前官方 runtime 已损坏且没有可用回退版本。")
+            return
+        }
         guard FileManager.default.fileExists(atPath: node.path),
               FileManager.default.fileExists(atPath: bin.path) else {
             completion(false, "App 内置的官方 dsh 运行时不完整，请重新安装。")
@@ -466,7 +578,13 @@ final class BackendController: NSObject, ObservableObject {
             let text = output.text
             DispatchQueue.main.async {
                 if process.terminationStatus == 0 {
-                    completion(true, text)
+                    let runtimeHealthy = self.ensureActiveRuntimeDirectory() != nil
+                    completion(
+                        runtimeHealthy,
+                        runtimeHealthy
+                            ? text
+                            : "插件操作完成，但检测到当前官方 runtime 不完整；已尝试自动回退。"
+                    )
                 } else {
                     completion(false, text.isEmpty
                         ? "官方 dsh plugin 退出（code=\(process.terminationStatus)）。"

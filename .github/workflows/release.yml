@@ -58,6 +58,28 @@ jobs:
         shell: pwsh
         run: .\windows\package.ps1 -Architecture x64
 
+      - name: Smoke test published Windows shell
+        shell: pwsh
+        run: |
+          $app = Resolve-Path "windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe"
+          $process = Start-Process -FilePath $app -WorkingDirectory (Split-Path $app) -PassThru
+          try {
+            Start-Sleep -Seconds 12
+            if ($process.HasExited) {
+              Write-Output "Windows shell exited during startup with code $($process.ExitCode)"
+              if (Test-Path "$env:LOCALAPPDATA\DeepSeek Harness Glass\startup.log") {
+                Get-Content "$env:LOCALAPPDATA\DeepSeek Harness Glass\startup.log" -Tail 120
+              }
+              exit 1
+            }
+            Write-Output "published Windows shell stayed alive for startup smoke test"
+          }
+          finally {
+            if (-not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+          }
+
       - name: Create Windows ZIP
         shell: pwsh
         run: |

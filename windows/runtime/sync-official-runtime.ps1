@@ -55,6 +55,17 @@ function Write-CurrentPointer {
     Move-Item -LiteralPath $temporary -Destination (Join-Path $RuntimeRoot 'current.txt') -Force
 }
 
+function Test-RuntimeComplete {
+    param([string]$Root)
+    return (
+        (Test-Path -LiteralPath (Join-Path $Root 'lib\bin.js') -PathType Leaf) -and
+        (Test-Path -LiteralPath (Join-Path $Root 'package.json') -PathType Leaf) -and
+        (Test-Path -LiteralPath (Join-Path $Root 'node_modules\@deepseek-ai\dsh-app-boot\package.json') -PathType Leaf) -and
+        (Test-Path -LiteralPath (Join-Path $Root 'node_modules\@deepseek-ai\dsh-base\package.json') -PathType Leaf) -and
+        (Test-Path -LiteralPath (Join-Path $Root 'node_modules\@deepseek-ai\dsh-web-app\package.json') -PathType Leaf)
+    )
+}
+
 if ($Commit -notmatch $commitPattern) {
     throw 'The requested official commit is invalid.'
 }
@@ -88,7 +99,13 @@ $upstreamTarball = "https://codeload.github.com/deepseek-ai/deepseek-harness/tar
 New-Item -ItemType Directory -Force -Path $RuntimeRoot, $versions, $downloads | Out-Null
 Set-Content -LiteralPath $script:syncLog -Value '' -Encoding UTF8
 
-if (Test-Path -LiteralPath (Join-Path $target 'lib\bin.js') -PathType Leaf) {
+if (Test-Path -LiteralPath $target) -and -not (Test-RuntimeComplete $target) {
+    $brokenTarget = "$target.broken-$([DateTimeOffset]::Now.ToString('yyyyMMdd-HHmmssfff'))"
+    Move-Item -LiteralPath $target -Destination $brokenTarget -Force
+    Add-Content -LiteralPath $script:syncLog -Value "invalid cached runtime moved to $brokenTarget"
+}
+
+if (Test-RuntimeComplete $target) {
     $script:lastFraction = 0.96
     Emit-Progress 'activate' $script:lastFraction 'Activating cached official runtime' $Commit
     Write-CurrentPointer $Commit
@@ -167,14 +184,14 @@ try {
     finally {
         Pop-Location
     }
-    if (-not (Test-Path -LiteralPath (Join-Path $backend 'lib\bin.js') -PathType Leaf)) {
+    if (-not (Test-RuntimeComplete $backend)) {
         Fail-Sync 'deploy' 'The official dsh entry point was not present after packaging.'
     }
 
     $script:lastFraction = 0.90
     Emit-Progress 'materialize' $script:lastFraction 'Finalizing runtime files' 'Validating the official workspace dependency closure.'
     & $node $materializer $source $backend *>> $script:syncLog
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $backend 'lib\bin.js'))) {
+    if ($LASTEXITCODE -ne 0 -or -not (Test-RuntimeComplete $backend)) {
         Fail-Sync 'materialize' 'Runtime dependency finalization failed. A diagnostic log was retained.'
     }
 
