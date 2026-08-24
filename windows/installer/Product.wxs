@@ -6,7 +6,8 @@
       Manufacturer="etony668"
       Version="$(var.ProductVersion)"
       UpgradeCode="{4B58B12B-5A7A-4DD1-9A3D-0B8D5A8A1F72}"
-      Scope="perMachine">
+      Scope="perMachine"
+      Language="1033">
 
     <SummaryInformation Description="DeepSeek Harness Glass Windows desktop application" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of DeepSeek Harness Glass is already installed." />
@@ -27,7 +28,7 @@
       <Directory Id="INSTALLFOLDER" Name="DeepSeek Harness Glass" />
     </StandardDirectory>
 
-    <StandardDirectory Id="ProgramMenuFolder">
+    <StandardDirectory Id="CommonProgramsFolder">
       <Directory Id="ApplicationProgramsFolder" Name="DeepSeek Harness Glass" />
     </StandardDirectory>
   </Package>
