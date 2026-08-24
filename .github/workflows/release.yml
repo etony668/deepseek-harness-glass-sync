@@ -83,9 +83,11 @@ jobs:
       - name: Install WiX Toolset
         shell: pwsh
         run: |
-          dotnet tool install --global wix --version 7.0.0
+          # WiX v6 keeps the v4 authoring format used by Product.wxs without
+          # requiring an interactive v7 OSMF EULA acceptance in CI.
+          dotnet tool install --global wix --version 6.0.2
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          wix extension add -g WixToolset.UI.wixext/7.0.0
+          wix extension add -g WixToolset.UI.wixext/6.0.2
 
       - name: Create and validate Windows MSI
         shell: pwsh
