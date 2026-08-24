@@ -69,6 +69,21 @@ runtime_complete() {
     && test -f "$1/node_modules/@deepseek-ai/dsh-web-app/package.json"
 }
 
+activate_current() {
+  LINK="$RUNTIME_ROOT/.current-$COMMIT-$$"
+  ln -s "versions/$COMMIT" "$LINK"
+  # On macOS, `mv` follows an existing symlink destination and can place the
+  # new link inside the old runtime instead of replacing `current`. Remove
+  # only the pointer itself before moving the prepared link into place.
+  if [ -L "$CURRENT" ]; then
+    rm -f "$CURRENT"
+  elif [ -e "$CURRENT" ]; then
+    BROKEN_CURRENT="$CURRENT.broken-$(date +%Y%m%d-%H%M%S)-$$"
+    mv -f "$CURRENT" "$BROKEN_CURRENT"
+  fi
+  mv -f "$LINK" "$CURRENT"
+}
+
 emit() {
   # $1 phase, $2 fraction, $3 title, $4 detail
   LAST_FRACTION="$2"
@@ -93,9 +108,7 @@ fi
 
 if runtime_complete "$TARGET"; then
   emit "activate" "0.96" "正在激活已缓存的官方版本" "$COMMIT"
-  LINK="$RUNTIME_ROOT/.current-$COMMIT-$$"
-  ln -s "versions/$COMMIT" "$LINK"
-  mv -f "$LINK" "$CURRENT"
+  activate_current
   emit "complete" "1" "官方 Harness 已更新" "已启用已缓存的提交 ${COMMIT}"
   exit 0
 fi
@@ -201,8 +214,6 @@ printf '{\n  "upstream": "https://github.com/deepseek-ai/deepseek-harness",\n  "
 rm -rf "$TARGET"
 mv "$STAGE/backend" "$TARGET"
 emit "activate" "0.98" "正在启用官方 Harness" "正在原子切换到新版本"
-LINK="$RUNTIME_ROOT/.current-$COMMIT-$$"
-ln -s "versions/$COMMIT" "$LINK"
-mv -f "$LINK" "$CURRENT"
+activate_current
 
 emit "complete" "1" "官方 Harness 已更新" "已启用提交 ${COMMIT}"

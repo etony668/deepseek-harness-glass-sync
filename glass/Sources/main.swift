@@ -318,6 +318,64 @@ final class BackendController: NSObject, ObservableObject {
         }
     }
 
+    /// Keep user-installed plugin packages resolvable from the profile even
+    /// after the immutable official runtime is replaced. The plugin source
+    /// remains under DSH_HOME; only a profile fallback symlink is repaired.
+    /// This avoids copying plugin code into the repository or mutating the
+    /// official runtime during normal App startup.
+    private func repairUserPluginFallbacks() {
+        let fileManager = FileManager.default
+        let plugins = URL(fileURLWithPath: homePath)
+            .appendingPathComponent("plugins", isDirectory: true)
+        let profileModules = URL(fileURLWithPath: homePath)
+            .appendingPathComponent("profiles", isDirectory: true)
+            .appendingPathComponent("node_modules", isDirectory: true)
+        guard let entries = try? fileManager.contentsOfDirectory(
+            at: plugins,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return }
+
+        for plugin in entries {
+            let manifest = plugin.appendingPathComponent("package.json")
+            guard
+                let data = try? Data(contentsOf: manifest),
+                let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                let packageName = object["name"] as? String
+            else { continue }
+
+            let components = packageName.split(separator: "/").map(String.init)
+            guard !components.isEmpty,
+                  components.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." })
+            else { continue }
+
+            var fallback = profileModules
+            for component in components {
+                fallback.appendPathComponent(component, isDirectory: true)
+            }
+            let fallbackManifest = fallback.appendingPathComponent("package.json")
+            if fileManager.fileExists(atPath: fallbackManifest.path) { continue }
+
+            do {
+                try fileManager.createDirectory(
+                    at: fallback.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                if fileManager.fileExists(atPath: fallback.path)
+                    || (try? fileManager.destinationOfSymbolicLink(atPath: fallback.path)) != nil {
+                    try fileManager.removeItem(at: fallback)
+                }
+                try fileManager.createSymbolicLink(
+                    atPath: fallback.path,
+                    withDestinationPath: plugin.path
+                )
+                appendLog("[plugin] repaired profile fallback \(packageName)\n")
+            } catch {
+                appendLog("[plugin] unable to repair \(packageName): \(error.localizedDescription)\n")
+            }
+        }
+    }
+
     /// The active version directory is treated as immutable. If a plugin
     /// manager or a partial update damaged it, preserve that directory and
     /// atomically repoint `current` to the newest complete version instead.
@@ -459,6 +517,7 @@ final class BackendController: NSObject, ObservableObject {
                     self.errorText = "官方 Harness runtime 不完整，且没有可用回退版本。"
                     return
                 }
+                self.repairUserPluginFallbacks()
                 self.spawnBackend()
             }
         }
@@ -578,6 +637,7 @@ final class BackendController: NSObject, ObservableObject {
     /// Bundle 解析完全由官方运行时负责，Swift 只提供触发入口。
     func runPluginCommand(_ arguments: [String], completion: @escaping (Bool, String) -> Void) {
         let node = nodeURL
+        repairUserPluginFallbacks()
         guard let bin = pluginBackendURL() else {
             completion(false, "无法准备插件专用运行时；当前官方 runtime 已损坏且没有可用回退版本。")
             return
