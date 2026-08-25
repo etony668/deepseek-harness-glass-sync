@@ -34,16 +34,33 @@ if (-not (Test-Path -LiteralPath $application -PathType Leaf)) {
     throw "Published Windows application was not found: $application"
 }
 
-$nsis = Get-Command makensis.exe -ErrorAction SilentlyContinue
-if ($null -eq $nsis) {
-    throw 'NSIS was not found on PATH. Install makensis.exe before running build-installer.ps1.'
+$nsisCommand = Get-Command makensis.exe -ErrorAction SilentlyContinue
+$nsisPath = if ($null -ne $nsisCommand) {
+    $nsisCommand.Source
+}
+else {
+    $nsisCandidates = @()
+    if (-not [string]::IsNullOrWhiteSpace(${env:ProgramFiles(x86)})) {
+        $nsisCandidates += Join-Path ${env:ProgramFiles(x86)} 'NSIS\makensis.exe'
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:ProgramFiles)) {
+        $nsisCandidates += Join-Path $env:ProgramFiles 'NSIS\makensis.exe'
+    }
+
+    $nsisCandidates | Where-Object {
+        Test-Path -LiteralPath $_ -PathType Leaf
+    } | Select-Object -First 1
+}
+
+if ([string]::IsNullOrWhiteSpace($nsisPath)) {
+    throw 'NSIS was not found. Install makensis.exe or add it to PATH before running build-installer.ps1.'
 }
 
 New-Item -ItemType Directory -Force -Path $releaseRoot | Out-Null
 $output = Join-Path $releaseRoot "DeepSeekHarnessGlass-win-$Architecture-Setup-v$Version.exe"
 Remove-Item -LiteralPath $output -Force -ErrorAction SilentlyContinue
 
-& $nsis.Source /V3 `
+& $nsisPath /V3 `
     "/DAPP_SOURCE=$publishRoot" `
     "/DPRODUCT_VERSION=$Version" `
     "/DOUTPUT_FILE=$output" `
