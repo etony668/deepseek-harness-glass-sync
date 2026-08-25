@@ -152,6 +152,7 @@ jobs:
               throw "NSIS Setup did not create the uninstaller."
             }
             Invoke-SetupSmoke -Stage "uninstall" -FilePath $uninstaller -Arguments @("/S")
+            Start-Sleep -Seconds 3
 
             if (-not (Test-Path $dshSmokeFile)) {
               throw "NSIS uninstall removed user DSH_HOME data."

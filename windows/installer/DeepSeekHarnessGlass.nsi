@@ -36,6 +36,11 @@ Section "DeepSeek Harness Glass"
 SectionEnd
 
 Section "Uninstall"
+  ; The WebView2 host can leave a child process alive briefly after the
+  ; caller closes the main window. Terminate only this app's process tree
+  ; before removing the self-contained install directory.
+  nsExec::ExecToLog 'taskkill.exe /F /T /IM DeepSeekHarnessGlass.exe'
+  Sleep 1000
   Delete "$SMPROGRAMS\DeepSeek Harness Glass\DeepSeek Harness Glass.lnk"
   Delete "$SMPROGRAMS\DeepSeek Harness Glass\Uninstall DeepSeek Harness Glass.lnk"
   RMDir "$SMPROGRAMS\DeepSeek Harness Glass"
