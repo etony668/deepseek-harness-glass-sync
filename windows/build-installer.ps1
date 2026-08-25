@@ -61,6 +61,7 @@ try {
     & $wix.Source build $installerSource `
         -arch $Architecture `
         -bindpath "PayloadDir=$releaseRoot" `
+        -bindpath "InstallerDir=$PSScriptRoot\installer" `
         -d "ProductVersion=$Version" `
         -ext WixToolset.UI.wixext `
         -ext WixToolset.Util.wixext `
