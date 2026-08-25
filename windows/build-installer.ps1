@@ -60,16 +60,34 @@ New-Item -ItemType Directory -Force -Path $releaseRoot | Out-Null
 $output = Join-Path $releaseRoot "DeepSeekHarnessGlass-win-$Architecture-Setup-v$Version.exe"
 Remove-Item -LiteralPath $output -Force -ErrorAction SilentlyContinue
 
-& $nsisPath /V3 `
-    "/DAPP_SOURCE=$publishRoot" `
-    "/DPRODUCT_VERSION=$Version" `
-    "/DOUTPUT_FILE=$output" `
-    $installerSource
-if ($LASTEXITCODE -ne 0) {
-    throw "NSIS Setup build failed with exit code $LASTEXITCODE."
+$stagingRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
+    'dshg-' + [System.Guid]::NewGuid().ToString('N').Substring(0, 8)
+)
+
+try {
+    New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
+
+    # The official runtime has a few generated type declaration paths longer
+    # than legacy Win32 MAX_PATH when the repository checkout is used directly.
+    # NSIS resolves File /r with those legacy paths, so compile from a short,
+    # disposable staging root. The installed payload is unchanged.
+    Get-ChildItem -LiteralPath $publishRoot -Force |
+        Copy-Item -Destination $stagingRoot -Recurse -Force
+
+    & $nsisPath /V3 `
+        "/DAPP_SOURCE=$stagingRoot" `
+        "/DPRODUCT_VERSION=$Version" `
+        "/DOUTPUT_FILE=$output" `
+        $installerSource
+    if ($LASTEXITCODE -ne 0) {
+        throw "NSIS Setup build failed with exit code $LASTEXITCODE."
+    }
+    if (-not (Test-Path -LiteralPath $output -PathType Leaf)) {
+        throw "NSIS Setup was not created: $output"
+    }
 }
-if (-not (Test-Path -LiteralPath $output -PathType Leaf)) {
-    throw "NSIS Setup was not created: $output"
+finally {
+    Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 Write-Output '== NSIS Setup complete =='
