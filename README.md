@@ -63,12 +63,14 @@ This is required once.
 ### Windows
 
 For a normal installation, download
-`DeepSeekHarnessGlass-win-x64-<version>.msi` from **Releases** and run it.
-The installer places the complete app under
-`%ProgramFiles%\DeepSeek Harness Glass`, adds a Start Menu shortcut, and may
-ask for administrator approval. It does not remove `~/.dsh` data when
-uninstalled. The MSI is currently an unsigned community build, so Windows may
-show a SmartScreen prompt.
+`DeepSeekHarnessGlass-win-x64-Setup-v<version>.exe` from **Releases** and run
+it. This per-user Setup installs the complete app to
+`%LOCALAPPDATA%\Programs\DeepSeek Harness Glass` and creates Start Menu
+shortcuts without requiring administrator approval. Uninstalling removes only
+that application directory and its shortcuts; it never removes your
+`%USERPROFILE%\.dsh` data, credentials, sessions, or plugins. The Setup is
+currently an unsigned community build, so Windows may show a SmartScreen
+prompt.
 
 Download and extract `DeepSeekHarnessGlass-win-x64-<version>.zip` from
 **Releases**, then keep the entire extracted folder together and launch
@@ -226,8 +228,8 @@ hdiutil create -volname "DeepSeek Harness Glass Sync" -srcfolder dmg-stage \
 ```
 
 A `v*` tag pushed to GitHub triggers `.github/workflows/release.yml`, which
-builds the macOS DMG, Windows x64 ZIP, and Windows x64 MSI, then attaches all
-three assets to a Release.
+builds the macOS DMG, Windows x64 ZIP, and Windows x64 NSIS Setup.exe, then
+attaches all three assets to a Release.
 
 ### Windows
 
@@ -248,7 +250,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 .\windows\dist\DeepSeekHarnessGlass-win-x64\DeepSeekHarnessGlass.exe
 
-# After the published folder is ready, build a WiX MSI installer.
+# After the published folder is ready, build the NSIS Setup.exe installer.
 .\windows\build-installer.ps1 -Architecture x64 -Version 0.5.10
 ```
 
@@ -342,8 +344,8 @@ windows/
   HarnessBackend.cs       official runtime / plugin / sync controller
   build-runtime.ps1       build and smoke-test the official Windows runtime
   package.ps1             publish the portable Windows app folder
-  build-installer.ps1     build the WiX MSI installer
-  installer/Product.wxs   MSI package and Start Menu shortcut definition
+  build-installer.ps1     build the per-user NSIS Setup.exe installer
+  installer/DeepSeekHarnessGlass.nsi  Setup and Start Menu shortcut definition
   runtime/                bundled pnpm wrapper and sync script
 scripts/
   sync-upstream.sh       advance official Harness submodule to origin/master

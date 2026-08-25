@@ -6,18 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.5.10] - 2026-08-24
+## [0.5.10] - 2026-08-25
 
-### Fixed
+### Changed
 
-- Reworked the Windows MSI around a single self-contained runtime archive.
-  The installer now expands the archive into Program Files and removes only
-  that application directory on uninstall, avoiding the Windows Installer
-  per-file component validation and performance limits of the complete
-  official runtime.
-- Added the same bounded install, installed-app launch, uninstall, and
-  user-`DSH_HOME` preservation verification to the regular Windows build
-  workflow, including retained MSI logs on failure.
+- Replaced the Windows MSI with a per-user NSIS Setup.exe. It copies the
+  complete self-contained runtime directly to
+  `%LOCALAPPDATA%\Programs\DeepSeek Harness Glass`, avoiding Windows Installer
+  component and scaling limits.
+- Windows CI now builds the NSIS Setup.exe and verifies a silent install,
+  installed-app launch, silent uninstall, Start Menu shortcut creation, and
+  preservation of a user `DSH_HOME` sentinel.
+- Releases now ship the Windows portable ZIP and NSIS Setup.exe instead of an
+  MSI. The installer never modifies user-owned `%USERPROFILE%\.dsh` data.
 
 ## [0.5.9] - 2026-08-24
 
