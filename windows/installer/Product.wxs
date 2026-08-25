@@ -17,6 +17,7 @@
 
     <Feature Id="MainFeature" Title="DeepSeek Harness Glass" Level="1">
       <ComponentRef Id="ApplicationPayload" />
+      <ComponentRef Id="InstallerScripts" />
       <ComponentRef Id="ApplicationShortcut" />
     </Feature>
 
@@ -34,6 +35,12 @@
       <File Id="ApplicationPayloadZip"
             Source="!(bindpath.PayloadDir)\DeepSeekHarnessGlass-payload.zip"
             KeyPath="yes" />
+    </Component>
+
+    <Component Id="InstallerScripts" Directory="INSTALLFOLDER">
+      <File Id="InstallPayloadScript" Source="install-runtime.ps1" />
+      <File Id="RemovePayloadScript" Source="remove-runtime.ps1" KeyPath="yes" />
+      <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
     </Component>
 
     <Component Id="ApplicationShortcut" Directory="ApplicationProgramsFolder">
@@ -55,7 +62,7 @@
 
     <SetProperty
         Id="ExtractApplicationPayload"
-        Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Expand-Archive -LiteralPath '[#ApplicationPayloadZip]' -DestinationPath '[INSTALLFOLDER]' -Force; Remove-Item -LiteralPath '[#ApplicationPayloadZip]' -Force&quot;"
+        Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#InstallPayloadScript]&quot; -ArchivePath &quot;[#ApplicationPayloadZip]&quot; -DestinationPath &quot;[INSTALLFOLDER]&quot;"
         Before="ExtractApplicationPayload"
         Sequence="execute" />
     <CustomAction
@@ -68,7 +75,7 @@
 
     <SetProperty
         Id="RemoveExtractedApplication"
-        Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Get-Process -Name 'DeepSeekHarnessGlass' -ErrorAction SilentlyContinue | Stop-Process -Force; if (Test-Path -LiteralPath '[INSTALLFOLDER]') { Remove-Item -LiteralPath '[INSTALLFOLDER]' -Recurse -Force }&quot;"
+        Value="&quot;[SystemFolder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#RemovePayloadScript]&quot; -InstallRoot &quot;[INSTALLFOLDER]&quot; -CurrentScriptPath &quot;[#RemovePayloadScript]&quot;"
         Before="RemoveExtractedApplication"
         Sequence="execute" />
     <CustomAction
