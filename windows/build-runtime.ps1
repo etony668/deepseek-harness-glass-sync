@@ -15,7 +15,6 @@ $build = Join-Path $PSScriptRoot 'build'
 $versionsFile = Join-Path $repositoryRoot 'glass\runtime\versions.env'
 $nodeDirectory = Join-Path $build 'node'
 $node = Join-Path $nodeDirectory 'node.exe'
-$nodeApiHeader = Join-Path $nodeDirectory 'include\node\node_api.h'
 $npmCli = Join-Path $build 'npm\node_modules\npm\bin\npm-cli.js'
 $pnpmDirectory = Join-Path $build 'pnpm'
 $pnpm = Join-Path $pnpmDirectory 'node_modules\pnpm\bin\pnpm.mjs'
@@ -36,7 +35,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $harness 'package.json') -PathType L
     throw 'The official Harness submodule is missing. Clone with --recurse-submodules or run: git submodule update --init --checkout upstream/deepseek-harness'
 }
 
-if (-not (Test-Path -LiteralPath $node -PathType Leaf) -or -not (Test-Path -LiteralPath $nodeApiHeader -PathType Leaf) -or -not (Test-Path -LiteralPath $npmCli -PathType Leaf)) {
+if (-not (Test-Path -LiteralPath $node -PathType Leaf) -or -not (Test-Path -LiteralPath $npmCli -PathType Leaf)) {
     New-Item -ItemType Directory -Force -Path $nodeDirectory, (Split-Path -Parent $npmCli) | Out-Null
     $temporary = Join-Path ([IO.Path]::GetTempPath()) ("dsh-node-" + [Guid]::NewGuid().ToString('N'))
     try {
@@ -46,9 +45,14 @@ if (-not (Test-Path -LiteralPath $node -PathType Leaf) -or -not (Test-Path -Lite
         Expand-Archive -LiteralPath $download -DestinationPath $temporary -Force
         $extracted = Join-Path $temporary ("node-v$nodeVersion-win-$Architecture")
         Copy-Item -LiteralPath (Join-Path $extracted 'node.exe') -Destination $node -Force
-        Remove-Item -LiteralPath (Join-Path $nodeDirectory 'include') -Recurse -Force -ErrorAction SilentlyContinue
-        Copy-Item -LiteralPath (Join-Path $extracted 'include') `
-            -Destination (Join-Path $nodeDirectory 'include') -Recurse -Force
+        # Node's Windows zip has no include/ directory (the macOS tarball does);
+        # sync headers only when the archive actually ships them.
+        $extractedInclude = Join-Path $extracted 'include'
+        if (Test-Path -LiteralPath $extractedInclude -PathType Container) {
+            Remove-Item -LiteralPath (Join-Path $nodeDirectory 'include') -Recurse -Force -ErrorAction SilentlyContinue
+            Copy-Item -LiteralPath $extractedInclude `
+                -Destination (Join-Path $nodeDirectory 'include') -Recurse -Force
+        }
         Remove-Item -LiteralPath (Join-Path $build 'npm\node_modules\npm') -Recurse -Force -ErrorAction SilentlyContinue
         Copy-Item -LiteralPath (Join-Path $extracted 'node_modules\npm') `
             -Destination (Join-Path $build 'npm\node_modules\npm') -Recurse -Force
