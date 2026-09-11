@@ -27,7 +27,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Windows shell publish failed.' }
 
 New-Item -ItemType Directory -Force -Path $resourceRoot, $bin | Out-Null
 Copy-Item -LiteralPath (Join-Path $build 'node') -Destination (Join-Path $resourceRoot 'node') -Recurse -Force
-Copy-Item -LiteralPath (Join-Path $build 'node\include') -Destination (Join-Path $resourceRoot 'include') -Recurse -Force
+# Node's Windows zip ships no include/ directory (macOS tarball does); copy only when present.
+$nodeInclude = Join-Path $build 'node\include'
+if (Test-Path -LiteralPath $nodeInclude -PathType Container) {
+    Copy-Item -LiteralPath $nodeInclude -Destination (Join-Path $resourceRoot 'include') -Recurse -Force
+}
 Copy-Item -LiteralPath (Join-Path $build 'pnpm') -Destination (Join-Path $resourceRoot 'pnpm') -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $build 'bin\pnpm.cmd') -Destination $bin -Force
 Copy-Item -LiteralPath (Join-Path $build 'bin\pnpx.cmd') -Destination $bin -Force
