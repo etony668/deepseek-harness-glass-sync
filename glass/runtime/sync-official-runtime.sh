@@ -16,11 +16,19 @@ RESOURCES="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 NODE="$RESOURCES/node/node"
 PNPM="$RESOURCES/pnpm/node_modules/pnpm/bin/pnpm.mjs"
 MATERIALIZER="$RESOURCES/bin/materialize-runtime.mjs"
+PATCHER="$RESOURCES/bin/patch-session-format-migration"
 # pnpm runs package lifecycle scripts in child shells. Those scripts invoke
 # `node` by name, so expose the bundled Node directory as well as the pnpm
 # wrapper directory; relying on the user's system PATH makes App sync fail on
 # machines without a globally installed Node.js.
 export PATH="$RESOURCES/bin:$RESOURCES/node:${PATH:-/usr/bin:/bin}"
+# pnpm lifecycle scripts normally prepend the workspace's
+# `node_modules/.bin` directory to PATH. Make the bundled Node available
+# there too: pnpm may rebuild PATH for child scripts and omit the App's
+# resource directories, which otherwise causes `node: command not found`
+# during native dependency postinstall hooks.
+export npm_node_execpath="$NODE"
+export npm_execpath="$PNPM"
 # 直连 GitHub 官方源码分发端点，避免 github.com/archive 的重定向链；
 # 此 URL 与官方仓库的 commit 一一对应。
 UPSTREAM_TARBALL="https://codeload.github.com/deepseek-ai/deepseek-harness/tar.gz/${COMMIT}"
@@ -44,7 +52,7 @@ case "$RUNTIME_ROOT" in
     ;;
 esac
 
-for required in "$NODE" "$PNPM" "$MATERIALIZER"; do
+for required in "$NODE" "$PNPM" "$MATERIALIZER" "$PATCHER"; do
   if [ ! -f "$required" ]; then
     echo "missing bundled update tool: $required" >&2
     exit 67
@@ -107,6 +115,9 @@ if [ -e "$TARGET" ] && ! runtime_complete "$TARGET"; then
 fi
 
 if runtime_complete "$TARGET"; then
+  "$NODE" "$PATCHER" "$TARGET" >> "$SYNC_LOG" 2>&1 || {
+    fail "materialize" "运行时兼容补丁失败；已保留诊断日志。"
+  }
   emit "activate" "0.96" "正在激活已缓存的官方版本" "$COMMIT"
   activate_current
   emit "complete" "1" "官方 Harness 已更新" "已启用已缓存的提交 ${COMMIT}"
@@ -170,6 +181,8 @@ run_pnpm() {
 emit "install" "0.34" "正在安装官方依赖" "首次同步可能需要几分钟"
 if ! (
   cd "$STAGE/source"
+  mkdir -p node_modules/.bin
+  ln -sf "$NODE" node_modules/.bin/node
   run_pnpm install --frozen-lockfile
 ) >> "$SYNC_LOG" 2>&1; then
   fail "install" "官方依赖安装失败；请检查网络后重试。"
@@ -190,7 +203,9 @@ emit "deploy" "0.76" "正在打包完整运行时" "正在准备官方 dsh 与�
 if ! (
   cd "$STAGE/source"
   run_pnpm --filter @deepseek-ai/dsh deploy --prod --legacy \
-    --config.node-linker=hoisted "$STAGE/backend"
+    --config.node-linker=hoisted \
+    --config.allow-unused-patches=true \
+    "$STAGE/backend"
 ) >> "$SYNC_LOG" 2>&1; then
   fail "deploy" "官方运行时打包失败；已保留诊断日志。"
 fi
@@ -202,6 +217,10 @@ runtime_complete "$STAGE/backend" || {
 emit "materialize" "0.90" "正在整理运行时文件" "正在校验官方 workspace 依赖闭包"
 if ! "$NODE" "$MATERIALIZER" "$STAGE/source" "$STAGE/backend" >> "$SYNC_LOG" 2>&1; then
   fail "materialize" "运行时依赖整理失败；已保留诊断日志。"
+fi
+
+if ! "$NODE" "$PATCHER" "$STAGE/backend" >> "$SYNC_LOG" 2>&1; then
+  fail "materialize" "官方更新兼容补丁失败；已保留诊断日志。"
 fi
 
 runtime_complete "$STAGE/backend" || {

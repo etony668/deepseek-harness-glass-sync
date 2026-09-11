@@ -25,6 +25,7 @@ if [ ! -f "$HARNESS/package.json" ]; then
 fi
 
 if [ ! -x "$BUILD/node/node" ] \
+  || [ ! -f "$BUILD/node/include/node/node_api.h" ] \
   || [ ! -f "$BUILD/npm/node_modules/npm/bin/npm-cli.js" ]; then
   mkdir -p "$BUILD/node" "$BUILD/npm/node_modules"
   tmp="$(mktemp -d)"
@@ -33,6 +34,8 @@ if [ ! -x "$BUILD/node/node" ] \
   tar -xzf "$tmp/node.tgz" -C "$tmp"
   cp "$tmp/node-v${NODE_VERSION}-darwin-arm64/bin/node" "$BUILD/node/node"
   chmod +x "$BUILD/node/node"
+  rm -rf "$BUILD/node/include"
+  cp -RL "$tmp/node-v${NODE_VERSION}-darwin-arm64/include" "$BUILD/node/include"
   rm -rf "$BUILD/npm/node_modules/npm"
   cp -RL "$tmp/node-v${NODE_VERSION}-darwin-arm64/lib/node_modules/npm" \
     "$BUILD/npm/node_modules/npm"
@@ -84,7 +87,9 @@ mkdir -p "$BUILD/backend"
   # deploy mode; `--legacy` is the supported way to deploy this unchanged
   # official checkout while still materializing the full production closure.
   run_pnpm --filter @deepseek-ai/dsh deploy --prod --legacy \
-    --config.node-linker=hoisted "$BUILD/backend"
+    --config.node-linker=hoisted \
+    --config.allow-unused-patches=true \
+    "$BUILD/backend"
 )
 
 test -f "$BUILD/backend/lib/bin.js" || {
@@ -94,6 +99,9 @@ test -f "$BUILD/backend/lib/bin.js" || {
 
 echo "== materialize official workspace peer closure =="
 "$BUILD/node/node" "$ROOT/scripts/materialize-runtime.mjs"
+
+echo "== apply official session-format compatibility patch =="
+"$BUILD/node/node" "$ROOT/glass/runtime/patch-session-format-migration.mjs" "$BUILD/backend"
 
 echo "== smoke test official dsh web profile =="
 TMP_HOME="$(mktemp -d)"

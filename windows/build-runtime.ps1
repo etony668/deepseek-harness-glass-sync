@@ -15,11 +15,13 @@ $build = Join-Path $PSScriptRoot 'build'
 $versionsFile = Join-Path $repositoryRoot 'glass\runtime\versions.env'
 $nodeDirectory = Join-Path $build 'node'
 $node = Join-Path $nodeDirectory 'node.exe'
+$nodeApiHeader = Join-Path $nodeDirectory 'include\node\node_api.h'
 $npmCli = Join-Path $build 'npm\node_modules\npm\bin\npm-cli.js'
 $pnpmDirectory = Join-Path $build 'pnpm'
 $pnpm = Join-Path $pnpmDirectory 'node_modules\pnpm\bin\pnpm.mjs'
 $backend = Join-Path $build 'backend'
 $bin = Join-Path $build 'bin'
+$patchScript = Join-Path $repositoryRoot 'glass\runtime\patch-session-format-migration.mjs'
 
 if (-not (Test-Path -LiteralPath $versionsFile -PathType Leaf)) {
     throw "Missing embedded runtime version file: $versionsFile"
@@ -34,7 +36,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $harness 'package.json') -PathType L
     throw 'The official Harness submodule is missing. Clone with --recurse-submodules or run: git submodule update --init --checkout upstream/deepseek-harness'
 }
 
-if (-not (Test-Path -LiteralPath $node -PathType Leaf) -or -not (Test-Path -LiteralPath $npmCli -PathType Leaf)) {
+if (-not (Test-Path -LiteralPath $node -PathType Leaf) -or -not (Test-Path -LiteralPath $nodeApiHeader -PathType Leaf) -or -not (Test-Path -LiteralPath $npmCli -PathType Leaf)) {
     New-Item -ItemType Directory -Force -Path $nodeDirectory, (Split-Path -Parent $npmCli) | Out-Null
     $temporary = Join-Path ([IO.Path]::GetTempPath()) ("dsh-node-" + [Guid]::NewGuid().ToString('N'))
     try {
@@ -44,6 +46,9 @@ if (-not (Test-Path -LiteralPath $node -PathType Leaf) -or -not (Test-Path -Lite
         Expand-Archive -LiteralPath $download -DestinationPath $temporary -Force
         $extracted = Join-Path $temporary ("node-v$nodeVersion-win-$Architecture")
         Copy-Item -LiteralPath (Join-Path $extracted 'node.exe') -Destination $node -Force
+        Remove-Item -LiteralPath (Join-Path $nodeDirectory 'include') -Recurse -Force -ErrorAction SilentlyContinue
+        Copy-Item -LiteralPath (Join-Path $extracted 'include') `
+            -Destination (Join-Path $nodeDirectory 'include') -Recurse -Force
         Remove-Item -LiteralPath (Join-Path $build 'npm\node_modules\npm') -Recurse -Force -ErrorAction SilentlyContinue
         Copy-Item -LiteralPath (Join-Path $extracted 'node_modules\npm') `
             -Destination (Join-Path $build 'npm\node_modules\npm') -Recurse -Force
@@ -95,7 +100,8 @@ Remove-Item -LiteralPath $backend -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $backend | Out-Null
 Push-Location $harness
 try {
-    Invoke-Pnpm --filter '@deepseek-ai/dsh' deploy --prod --legacy --config.node-linker=hoisted $backend
+    Invoke-Pnpm --filter '@deepseek-ai/dsh' deploy --prod --legacy `
+        --config.node-linker=hoisted --config.allow-unused-patches=true $backend
 }
 finally {
     Pop-Location
@@ -108,6 +114,10 @@ if (-not (Test-Path -LiteralPath (Join-Path $backend 'lib\bin.js') -PathType Lea
 Write-Output '== materialize official workspace peer closure =='
 & $node (Join-Path $repositoryRoot 'scripts\materialize-runtime.mjs') $harness $backend
 if ($LASTEXITCODE -ne 0) { throw 'Runtime materialization failed.' }
+
+Write-Output '== apply official session-format compatibility patch =='
+& $node $patchScript $backend
+if ($LASTEXITCODE -ne 0) { throw 'Session-format compatibility patch failed.' }
 
 Write-Output '== smoke test official dsh web profile =='
 $temporaryHome = Join-Path ([IO.Path]::GetTempPath()) ("dsh-smoke-" + [Guid]::NewGuid().ToString('N'))

@@ -4,9 +4,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.10] - 2026-09-11
 
-## [0.5.10] - 2026-08-25
+### Fixed
+
+- Official Harness session v0→v1 migration now accepts the `origin` value that
+  newer dsh-permission-presets writes to `permission/preset`
+  (`default` / `selection` / `inferred`). Previously, historical v0 sessions
+  containing that field were refused after an official update. The
+  compatibility patch ships in both the macOS and Windows App sync/build
+  flows and is applied to cached official runtimes without rewriting user
+  `DSH_HOME` session files.
+- A single runtime source is now enforced: when only the bundled
+  `Resources/backend` exists, the app materializes it into
+  `~/Library/Application Support/DeepSeek Harness Glass/runtime/versions/`
+  instead of launching the bundled copy directly. This removes the duplicated
+  official Harness UI and the `SessionAlreadyOwnedError` raised when the old
+  and new backends overlapped during a sync.
 
 ### Changed
 

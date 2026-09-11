@@ -19,21 +19,41 @@ swiftc -O -parse-as-library -target arm64-apple-macosx26.0 \
 echo "== 2/4 内置固定版本 Node + pnpm =="
 mkdir -p "$STAGE/Contents/Resources/node"
 cp build/node/node "$STAGE/Contents/Resources/node/node"
+cp -RL build/node/include "$STAGE/Contents/Resources/node/include"
+rm -rf "$STAGE/Contents/Resources/include"
+cp -RL build/node/include "$STAGE/Contents/Resources/include"
 chmod +x "$STAGE/Contents/Resources/node/node"
 cp -RL build/pnpm "$STAGE/Contents/Resources/pnpm"
 mkdir -p "$STAGE/Contents/Resources/bin"
 cp build/bin/pnpm build/bin/pnpx "$STAGE/Contents/Resources/bin/"
 cp runtime/sync-official-runtime.sh "$STAGE/Contents/Resources/bin/sync-official-runtime"
 cp ../scripts/materialize-runtime.mjs "$STAGE/Contents/Resources/bin/materialize-runtime.mjs"
+cp runtime/patch-session-format-migration.mjs "$STAGE/Contents/Resources/bin/patch-session-format-migration"
 chmod +x \
   "$STAGE/Contents/Resources/bin/pnpm" \
   "$STAGE/Contents/Resources/bin/pnpx" \
-  "$STAGE/Contents/Resources/bin/sync-official-runtime"
+  "$STAGE/Contents/Resources/bin/sync-official-runtime" \
+  "$STAGE/Contents/Resources/bin/patch-session-format-migration"
 
 echo "== 3/4 内置官方 dsh profile 运行时 =="
 cp -RL "build/backend" "$STAGE/Contents/Resources/backend"
 test -f "$STAGE/Contents/Resources/backend/lib/bin.js"
-git -C ../upstream/deepseek-harness rev-parse HEAD \
+if [ -n "${BUNDLED_RUNTIME_COMMIT:-}" ]; then
+  RUNTIME_COMMIT="$BUNDLED_RUNTIME_COMMIT"
+else
+  RUNTIME_COMMIT="$(git -C ../upstream/deepseek-harness rev-parse HEAD)"
+fi
+case "$RUNTIME_COMMIT" in
+  *[!0-9a-f]*|'')
+    echo "invalid bundled runtime commit: $RUNTIME_COMMIT" >&2
+    exit 1
+    ;;
+esac
+if [ "${#RUNTIME_COMMIT}" -ne 40 ]; then
+  echo "invalid bundled runtime commit length: $RUNTIME_COMMIT" >&2
+  exit 1
+fi
+printf '%s\n' "$RUNTIME_COMMIT" \
   > "$STAGE/Contents/Resources/bundled-runtime-commit"
 
 echo "== 4/4 Info.plist / 图标 / 签名 / 原子替换 =="

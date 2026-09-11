@@ -229,6 +229,7 @@ final class BackendController: NSObject, ObservableObject {
     private var captured = ""
     private var restartCount = 0
     private var suppressNextExit = false
+    private var restartAfterExit = false
     private var isQuitting = false
     /// 该实例是否由我们拉起（复用外部 dsh 时不拥有、退出时不能杀）。
     private(set) var ownsBackend = true
@@ -432,8 +433,37 @@ final class BackendController: NSObject, ObservableObject {
 
         let bundled = resourcesURL.appendingPathComponent("backend", isDirectory: true)
         if runtimeIsComplete(bundled) {
-            appendLog("[runtime] using bundled runtime fallback\n")
-            return bundled
+            let bundledCommit = bundledRuntimeCommit
+            let target = runtimeRootURL
+                .appendingPathComponent("versions", isDirectory: true)
+                .appendingPathComponent(bundledCommit, isDirectory: true)
+            do {
+                try fileManager.createDirectory(
+                    at: target.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                if !runtimeIsComplete(target) {
+                    try? fileManager.removeItem(at: target)
+                    try fileManager.copyItem(
+                        at: bundled.resolvingSymlinksInPath(),
+                        to: target
+                    )
+                }
+                let temporary = runtimeRootURL.appendingPathComponent(
+                    ".current-bundled-\(UUID().uuidString)"
+                )
+                try fileManager.createSymbolicLink(
+                    atPath: temporary.path,
+                    withDestinationPath: "versions/\(bundledCommit)"
+                )
+                try? fileManager.removeItem(at: current)
+                try fileManager.moveItem(at: temporary, to: current)
+                appendLog("[runtime] initialized one runtime from bundled commit \(bundledCommit)\n")
+                return current
+            } catch {
+                appendLog("[runtime] failed to initialize bundled runtime: \(error.localizedDescription)\n")
+                return nil
+            }
         }
         return nil
     }
@@ -529,9 +559,15 @@ final class BackendController: NSObject, ObservableObject {
         captured = ""
         restartCount = 0
         if ownsBackend, let p = process, p.isRunning {
+            // Both generations share DSH_HOME. Wait for the old process to
+            // exit before launching its replacement.
+            restartAfterExit = true
             suppressNextExit = true
             p.terminate()
+            return
         }
+        restartAfterExit = false
+        suppressNextExit = false
         process = nil
         start()
     }
@@ -590,8 +626,18 @@ final class BackendController: NSObject, ObservableObject {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.process = nil
-                if self.isQuitting { return }
-                if self.suppressNextExit { self.suppressNextExit = false; return }
+                if self.isQuitting {
+                    self.restartAfterExit = false
+                    return
+                }
+                if self.suppressNextExit {
+                    self.suppressNextExit = false
+                    if self.restartAfterExit {
+                        self.restartAfterExit = false
+                        self.start()
+                    }
+                    return
+                }
                 if self.restartCount < 1 {
                     self.restartCount += 1
                     self.url = nil

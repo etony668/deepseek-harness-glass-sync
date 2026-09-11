@@ -16,6 +16,7 @@ $resources = Split-Path -Parent $PSScriptRoot
 $node = Join-Path $resources 'node\node.exe'
 $pnpm = Join-Path $resources 'pnpm\node_modules\pnpm\bin\pnpm.mjs'
 $materializer = Join-Path $resources 'bin\materialize-runtime.mjs'
+$patcher = Join-Path $resources 'bin\patch-session-format-migration'
 $commitPattern = '^[0-9a-f]{40}$'
 # pnpm lifecycle scripts invoke `node` by name. Expose the bundled Node and
 # wrapper directories so sync does not depend on a system Node installation.
@@ -81,7 +82,7 @@ if ([IO.Path]::GetFullPath($RuntimeRoot).TrimEnd('\') -ne [IO.Path]::GetFullPath
     throw "Refusing a runtime path outside the app's LocalAppData directory."
 }
 
-foreach ($required in @($node, $pnpm, $materializer)) {
+foreach ($required in @($node, $pnpm, $materializer, $patcher)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
         throw "The bundled update tool is missing: $required"
     }
@@ -109,6 +110,10 @@ if (Test-Path -LiteralPath $target) -and -not (Test-RuntimeComplete $target) {
 }
 
 if (Test-RuntimeComplete $target) {
+    & $node $patcher $target *>> $script:syncLog
+    if ($LASTEXITCODE -ne 0) {
+        Fail-Sync 'materialize' 'The runtime compatibility patch failed. A diagnostic log was retained.'
+    }
     $script:lastFraction = 0.96
     Emit-Progress 'activate' $script:lastFraction 'Activating cached official runtime' $Commit
     Write-CurrentPointer $Commit
@@ -179,7 +184,8 @@ try {
     Push-Location $source
     try {
         $env:CI = 'true'
-        Invoke-Pnpm --filter '@deepseek-ai/dsh' deploy --prod --legacy --config.node-linker=hoisted $backend
+        Invoke-Pnpm --filter '@deepseek-ai/dsh' deploy --prod --legacy `
+            --config.node-linker=hoisted --config.allow-unused-patches=true $backend
     }
     catch {
         Fail-Sync 'deploy' 'The official runtime package step failed. A diagnostic log was retained.'
@@ -196,6 +202,11 @@ try {
     & $node $materializer $source $backend *>> $script:syncLog
     if ($LASTEXITCODE -ne 0 -or -not (Test-RuntimeComplete $backend)) {
         Fail-Sync 'materialize' 'Runtime dependency finalization failed. A diagnostic log was retained.'
+    }
+
+    & $node $patcher $backend *>> $script:syncLog
+    if ($LASTEXITCODE -ne 0) {
+        Fail-Sync 'materialize' 'The official update compatibility patch failed. A diagnostic log was retained.'
     }
 
     @{

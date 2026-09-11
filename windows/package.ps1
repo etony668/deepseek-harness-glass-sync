@@ -27,6 +27,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Windows shell publish failed.' }
 
 New-Item -ItemType Directory -Force -Path $resourceRoot, $bin | Out-Null
 Copy-Item -LiteralPath (Join-Path $build 'node') -Destination (Join-Path $resourceRoot 'node') -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $build 'node\include') -Destination (Join-Path $resourceRoot 'include') -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $build 'pnpm') -Destination (Join-Path $resourceRoot 'pnpm') -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $build 'bin\pnpm.cmd') -Destination $bin -Force
 Copy-Item -LiteralPath (Join-Path $build 'bin\pnpx.cmd') -Destination $bin -Force
@@ -35,6 +36,8 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\sync-official-runtime.p
     -Destination (Join-Path $bin 'sync-official-runtime.ps1') -Force
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'scripts\materialize-runtime.mjs') `
     -Destination (Join-Path $bin 'materialize-runtime.mjs') -Force
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'glass\runtime\patch-session-format-migration.mjs') `
+    -Destination (Join-Path $bin 'patch-session-format-migration') -Force
 
 # Windows App SDK is native code and may require the Microsoft Visual C++
 # runtime even when the app is published self-contained. Copy the public
